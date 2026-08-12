@@ -28,50 +28,70 @@
 </header>
 
 <!-- فرم ورود/ثبت‌نام -->
-<section class="section auth-section">
-  <div class="container" style="max-width:420px;">
+<section class="section" style="padding-top:60px;">
+  <div class="container">
+    <div class="form-card">
 
-    <div class="auth-tabs">
-      <button type="button" class="auth-tab active" id="tab-login-btn">ورود</button>
-      <button type="button" class="auth-tab" id="tab-signup-btn">ثبت‌نام</button>
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" id="tab-login-btn">ورود</button>
+        <button type="button" class="auth-tab" id="tab-signup-btn">ثبت‌نام</button>
+      </div>
+
+      <!-- فرم ورود -->
+      <div id="login-panel">
+        <h2>خوش اومدی</h2>
+        <p class="sub">برای ادامه وارد حسابت شو.</p>
+
+        <form id="login-form">
+          <div class="field">
+            <label for="login-email">ایمیل</label>
+            <input type="email" id="login-email" required placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label for="login-password">رمز عبور</label>
+            <input type="password" id="login-password" required placeholder="••••••••" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;" id="login-submit-btn">ورود</button>
+          <div id="login-msg" class="form-msg"></div>
+        </form>
+
+        <div class="form-footer-link">
+          حساب نداری؟ <a href="#" id="go-signup-link">ثبت‌نام کن</a>
+        </div>
+      </div>
+
+      <!-- فرم ثبت‌نام -->
+      <div id="signup-panel" class="hidden">
+        <h2>ساخت حساب جدید</h2>
+        <p class="sub">چند قدم تا شروع یادگیری فاصله داری.</p>
+
+        <form id="signup-form">
+          <div class="field">
+            <label for="signup-name">نام کامل</label>
+            <input type="text" id="signup-name" required placeholder="نام و نام‌خانوادگی" />
+          </div>
+          <div class="field">
+            <label for="signup-email">ایمیل</label>
+            <input type="email" id="signup-email" required placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label for="signup-password">رمز عبور</label>
+            <input type="password" id="signup-password" required minlength="6" placeholder="حداقل ۶ کاراکتر" />
+          </div>
+          <div class="field">
+            <label for="signup-password-confirm">تکرار رمز عبور</label>
+            <input type="password" id="signup-password-confirm" required minlength="6" placeholder="••••••••" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;" id="signup-submit-btn">ثبت‌نام</button>
+          <div id="signup-msg" class="form-msg"></div>
+        </form>
+
+        <div class="form-footer-link">
+          قبلاً ثبت‌نام کردی؟ <a href="#" id="go-login-link">وارد شو</a>
+        </div>
+      </div>
+
     </div>
-
-    <div id="auth-message" class="auth-message hidden"></div>
-
-    <!-- فرم ورود -->
-    <form id="login-form" class="auth-form">
-      <div class="form-group">
-        <label for="login-email">ایمیل</label>
-        <input type="email" id="login-email" required placeholder="you@example.com" />
-      </div>
-      <div class="form-group">
-        <label for="login-password">رمز عبور</label>
-        <input type="password" id="login-password" required placeholder="••••••••" />
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;" id="login-submit-btn">ورود</button>
-    </form>
-
-    <!-- فرم ثبت‌نام -->
-    <form id="signup-form" class="auth-form hidden">
-      <div class="form-group">
-        <label for="signup-name">نام کامل</label>
-        <input type="text" id="signup-name" required placeholder="نام و نام‌خانوادگی" />
-      </div>
-      <div class="form-group">
-        <label for="signup-email">ایمیل</label>
-        <input type="email" id="signup-email" required placeholder="you@example.com" />
-      </div>
-      <div class="form-group">
-        <label for="signup-password">رمز عبور</label>
-        <input type="password" id="signup-password" required minlength="6" placeholder="حداقل ۶ کاراکتر" />
-      </div>
-      <div class="form-group">
-        <label for="signup-password-confirm">تکرار رمز عبور</label>
-        <input type="password" id="signup-password-confirm" required minlength="6" placeholder="••••••••" />
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;" id="signup-submit-btn">ثبت‌نام</button>
-    </form>
-
   </div>
 </section>
 
@@ -111,45 +131,49 @@
 <script>
   document.getElementById("year").textContent = new Date().getFullYear();
 
-  // ==================== سوییچ بین تب ورود / ثبت‌نام ====================
+  // ==================== سوییچ بین پنل ورود / ثبت‌نام ====================
   const tabLoginBtn = document.getElementById("tab-login-btn");
   const tabSignupBtn = document.getElementById("tab-signup-btn");
-  const loginForm = document.getElementById("login-form");
-  const signupForm = document.getElementById("signup-form");
-  const authMessage = document.getElementById("auth-message");
+  const loginPanel = document.getElementById("login-panel");
+  const signupPanel = document.getElementById("signup-panel");
 
-  function clearMessage() {
-    authMessage.classList.add("hidden");
-    authMessage.textContent = "";
-  }
-
-  function showMessage(text, type = "error") {
-    authMessage.textContent = text;
-    authMessage.classList.remove("hidden");
-    authMessage.classList.toggle("error", type === "error");
-    authMessage.classList.toggle("success", type === "success");
-  }
-
-  tabLoginBtn.addEventListener("click", () => {
+  function showLoginPanel() {
     tabLoginBtn.classList.add("active");
     tabSignupBtn.classList.remove("active");
-    loginForm.classList.remove("hidden");
-    signupForm.classList.add("hidden");
-    clearMessage();
-  });
+    loginPanel.classList.remove("hidden");
+    signupPanel.classList.add("hidden");
+  }
 
-  tabSignupBtn.addEventListener("click", () => {
+  function showSignupPanel() {
     tabSignupBtn.classList.add("active");
     tabLoginBtn.classList.remove("active");
-    signupForm.classList.remove("hidden");
-    loginForm.classList.add("hidden");
-    clearMessage();
-  });
+    signupPanel.classList.remove("hidden");
+    loginPanel.classList.add("hidden");
+  }
+
+  tabLoginBtn.addEventListener("click", showLoginPanel);
+  tabSignupBtn.addEventListener("click", showSignupPanel);
+  document.getElementById("go-signup-link").addEventListener("click", (e) => { e.preventDefault(); showSignupPanel(); });
+  document.getElementById("go-login-link").addEventListener("click", (e) => { e.preventDefault(); showLoginPanel(); });
+
+  // ==================== نمایش پیام (خطا/موفقیت) ====================
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.classList.remove("error", "success");
+    el.classList.add("show", type);
+  }
+  function clearMsg(el) {
+    el.classList.remove("show", "error", "success");
+    el.textContent = "";
+  }
 
   // ==================== ارسال فرم ورود ====================
+  const loginForm = document.getElementById("login-form");
+  const loginMsg = document.getElementById("login-msg");
+
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    clearMessage();
+    clearMsg(loginMsg);
 
     const submitBtn = document.getElementById("login-submit-btn");
     submitBtn.disabled = true;
@@ -164,13 +188,12 @@
     submitBtn.textContent = "ورود";
 
     if (!result.success) {
-      showMessage(result.message, "error");
+      showMsg(loginMsg, result.message, "error");
       return;
     }
 
-    showMessage("ورود موفق. در حال انتقال…", "success");
+    showMsg(loginMsg, "ورود موفق. در حال انتقال…", "success");
 
-    // اگه کاربر ادمینه ببرش پنل ادمین، وگرنه صفحه اصلی
     const isAdmin = await checkIsAdmin();
     setTimeout(() => {
       window.location.href = isAdmin ? "admin.html" : "index.html";
@@ -178,9 +201,12 @@
   });
 
   // ==================== ارسال فرم ثبت‌نام ====================
+  const signupForm = document.getElementById("signup-form");
+  const signupMsg = document.getElementById("signup-msg");
+
   signupForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    clearMessage();
+    clearMsg(signupMsg);
 
     const name = document.getElementById("signup-name").value.trim();
     const email = document.getElementById("signup-email").value.trim();
@@ -188,7 +214,7 @@
     const passwordConfirm = document.getElementById("signup-password-confirm").value;
 
     if (password !== passwordConfirm) {
-      showMessage("رمز عبور و تکرار آن یکسان نیستند.", "error");
+      showMsg(signupMsg, "رمز عبور و تکرار آن یکسان نیستند.", "error");
       return;
     }
 
@@ -202,11 +228,11 @@
     submitBtn.textContent = "ثبت‌نام";
 
     if (!result.success) {
-      showMessage(result.message, "error");
+      showMsg(signupMsg, result.message, "error");
       return;
     }
 
-    showMessage(result.message, "success");
+    showMsg(signupMsg, result.message, "success");
     signupForm.reset();
   });
 </script>
