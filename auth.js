@@ -202,3 +202,46 @@ function onAuthChange(callback) {
     callback(session?.user || null);
   });
 }
+
+// ==================== مدیریت خودکار دکمه‌های منو ====================
+/**
+ * این تابع به‌صورت خودکار (پایین همین فایل) روی هر صفحه‌ای که
+ * auth.js رو لود کرده باشه اجرا می‌شه و بر اساس وضعیت لاگین:
+ * - دکمه "ورود" (id="nav-login-btn") رو نشون/مخفی می‌کنه
+ * - دکمه "خروج" (id="nav-logout-btn") رو نشون/مخفی می‌کنه و بهش رویداد کلیک می‌ده
+ * - دکمه "پنل ادمین" (id="nav-admin-btn") رو فقط برای ادمین‌ها نشون می‌ده
+ *
+ * پیش‌نیاز: توی HTML این دکمه‌ها باید همین idها رو داشته باشن
+ * و برای مخفی بودن پیش‌فرض، کلاس "hidden" روشون باشه (توی style.css تعریف شده)
+ */
+function initNavAuthUI() {
+  const loginBtn = document.getElementById("nav-login-btn");
+  const adminBtn = document.getElementById("nav-admin-btn");
+  const logoutBtn = document.getElementById("nav-logout-btn");
+
+  async function updateUI(user) {
+    const isAdmin = user ? await checkIsAdmin() : false;
+
+    if (loginBtn) loginBtn.classList.toggle("hidden", !!user);
+    if (logoutBtn) logoutBtn.classList.toggle("hidden", !user);
+    if (adminBtn) adminBtn.classList.toggle("hidden", !isAdmin);
+  }
+
+  // وضعیت اولیه هنگام لود صفحه
+  getCurrentUser().then(updateUI);
+
+  // گوش دادن به تغییرات لحظه‌ای (بعد از ورود یا خروج)
+  onAuthChange(updateUI);
+
+  // اتصال دکمه خروج
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      await signOut();
+      window.location.href = "index.html";
+    });
+  }
+}
+
+// اجرای خودکار به محض لود شدن HTML صفحه
+document.addEventListener("DOMContentLoaded", initNavAuthUI);
