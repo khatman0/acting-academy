@@ -309,6 +309,30 @@ button { font-family: var(--font-main); cursor: pointer; }
 .form-footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: var(--muted-text); }
 .form-footer-link a { color: var(--marquee-gold); font-weight: 600; }
 
+/* ---------- تب‌های ورود/ثبت‌نام ---------- */
+.auth-tabs {
+  display: flex;
+  gap: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(212,162,76,0.15);
+  border-radius: 999px;
+  padding: 5px;
+  margin-bottom: 26px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--muted-text);
+  font-family: var(--font-main);
+  font-weight: 700;
+  font-size: 14px;
+  border-radius: 999px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.auth-tab.active { background: var(--marquee-gold); color: var(--stage-black); }
+
 /* ---------- فوتر ---------- */
 .site-footer {
   border-top: 1px solid rgba(212,162,76,0.15);
