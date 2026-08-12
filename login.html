@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ورود / ثبت‌نام | آموزشگاه بازیگری</title>
+<meta name="description" content="ورود یا ثبت‌نام در آموزشگاه بازیگری" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">صحنه<span>آرت</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="instructors.html">اساتید</a></li>
+      <li><a href="gallery.html">گالری</a></li>
+      <li><a href="blog.html">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn" class="active">ورود</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- فرم ورود/ثبت‌نام -->
+<section class="section auth-section">
+  <div class="container" style="max-width:420px;">
+
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" id="tab-login-btn">ورود</button>
+      <button type="button" class="auth-tab" id="tab-signup-btn">ثبت‌نام</button>
+    </div>
+
+    <div id="auth-message" class="auth-message hidden"></div>
+
+    <!-- فرم ورود -->
+    <form id="login-form" class="auth-form">
+      <div class="form-group">
+        <label for="login-email">ایمیل</label>
+        <input type="email" id="login-email" required placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="login-password">رمز عبور</label>
+        <input type="password" id="login-password" required placeholder="••••••••" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="login-submit-btn">ورود</button>
+    </form>
+
+    <!-- فرم ثبت‌نام -->
+    <form id="signup-form" class="auth-form hidden">
+      <div class="form-group">
+        <label for="signup-name">نام کامل</label>
+        <input type="text" id="signup-name" required placeholder="نام و نام‌خانوادگی" />
+      </div>
+      <div class="form-group">
+        <label for="signup-email">ایمیل</label>
+        <input type="email" id="signup-email" required placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="signup-password">رمز عبور</label>
+        <input type="password" id="signup-password" required minlength="6" placeholder="حداقل ۶ کاراکتر" />
+      </div>
+      <div class="form-group">
+        <label for="signup-password-confirm">تکرار رمز عبور</label>
+        <input type="password" id="signup-password-confirm" required minlength="6" placeholder="••••••••" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="signup-submit-btn">ثبت‌نام</button>
+    </form>
+
+  </div>
+</section>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>صحنه‌آرت</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>تماس</h4>
+        <ul>
+          <li>تهران</li>
+          <li>info@example.com</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری صحنه‌آرت. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  // ==================== سوییچ بین تب ورود / ثبت‌نام ====================
+  const tabLoginBtn = document.getElementById("tab-login-btn");
+  const tabSignupBtn = document.getElementById("tab-signup-btn");
+  const loginForm = document.getElementById("login-form");
+  const signupForm = document.getElementById("signup-form");
+  const authMessage = document.getElementById("auth-message");
+
+  function clearMessage() {
+    authMessage.classList.add("hidden");
+    authMessage.textContent = "";
+  }
+
+  function showMessage(text, type = "error") {
+    authMessage.textContent = text;
+    authMessage.classList.remove("hidden");
+    authMessage.classList.toggle("error", type === "error");
+    authMessage.classList.toggle("success", type === "success");
+  }
+
+  tabLoginBtn.addEventListener("click", () => {
+    tabLoginBtn.classList.add("active");
+    tabSignupBtn.classList.remove("active");
+    loginForm.classList.remove("hidden");
+    signupForm.classList.add("hidden");
+    clearMessage();
+  });
+
+  tabSignupBtn.addEventListener("click", () => {
+    tabSignupBtn.classList.add("active");
+    tabLoginBtn.classList.remove("active");
+    signupForm.classList.remove("hidden");
+    loginForm.classList.add("hidden");
+    clearMessage();
+  });
+
+  // ==================== ارسال فرم ورود ====================
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMessage();
+
+    const submitBtn = document.getElementById("login-submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "در حال ورود…";
+
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+
+    const result = await signIn(email, password);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "ورود";
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+      return;
+    }
+
+    showMessage("ورود موفق. در حال انتقال…", "success");
+
+    // اگه کاربر ادمینه ببرش پنل ادمین، وگرنه صفحه اصلی
+    const isAdmin = await checkIsAdmin();
+    setTimeout(() => {
+      window.location.href = isAdmin ? "admin.html" : "index.html";
+    }, 800);
+  });
+
+  // ==================== ارسال فرم ثبت‌نام ====================
+  signupForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMessage();
+
+    const name = document.getElementById("signup-name").value.trim();
+    const email = document.getElementById("signup-email").value.trim();
+    const password = document.getElementById("signup-password").value;
+    const passwordConfirm = document.getElementById("signup-password-confirm").value;
+
+    if (password !== passwordConfirm) {
+      showMessage("رمز عبور و تکرار آن یکسان نیستند.", "error");
+      return;
+    }
+
+    const submitBtn = document.getElementById("signup-submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "در حال ثبت‌نام…";
+
+    const result = await signUp(email, password, name);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "ثبت‌نام";
+
+    if (!result.success) {
+      showMessage(result.message, "error");
+      return;
+    }
+
+    showMessage(result.message, "success");
+    signupForm.reset();
+  });
+</script>
+</body>
+</html>
