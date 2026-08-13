@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>گالری | آموزشگاه بازیگری</title>
+<meta name="description" content="گالری عکس‌های آموزشگاه بازیگری صحنه‌آرت — کلاس‌ها، اجراها و پشت‌صحنه" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">صحنه<span>آرت</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="instructors.html">اساتید</a></li>
+      <li><a href="gallery.html" class="active">گالری</a></li>
+      <li><a href="blog.html">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn">ورود</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- گالری -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>گالری تصاویر</h2>
+      <p>نگاهی به کلاس‌ها، تمرین‌ها و اجراهای روی صحنه‌ی هنرجویان آموزشگاه.</p>
+    </div>
+
+    <div class="gallery-filters" id="gallery-filters"></div>
+
+    <div class="gallery-grid" id="gallery-grid">
+      <div class="loader">در حال بارگذاری تصاویر…</div>
+    </div>
+  </div>
+</section>
+
+<!-- لایت‌باکس (نمایش بزرگ عکس) -->
+<div class="lightbox hidden" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close" aria-label="بستن">×</button>
+  <img id="lightbox-img" src="" alt="" />
+  <div class="lightbox-caption" id="lightbox-caption"></div>
+</div>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>صحنه‌آرت</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>تماس</h4>
+        <ul>
+          <li>تهران</li>
+          <li>info@example.com</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری صحنه‌آرت. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  /**
+   * ⚠️ فرضی که در مورد جدول "gallery" کردم — اگه اسم ستون‌هات فرق داره بگو تا اصلاح کنم:
+   * id             uuid
+   * image_url      text   (اجباری — لینک عکس توی Storage)
+   * caption        text   (اختیاری — توضیح زیر عکس)
+   * category       text   (اختیاری — مثلاً "کلاس‌ها" / "اجراها" / "پشت‌صحنه"، برای فیلتر)
+   * display_order  int4   (ترتیب نمایش)
+   * created_at     timestamptz
+   */
+
+  let allImages = [];
+  let activeCategory = "all";
+
+  loadGallery();
+
+  async function loadGallery() {
+    const grid = document.getElementById("gallery-grid");
+
+    const { data, error } = await supabaseClient
+      .from("gallery")
+      .select("*")
+      .order("display_order", { ascending: true });
+
+    if (error) {
+      grid.innerHTML = `<div class="empty-state">خطا در بارگذاری گالری.</div>`;
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      grid.innerHTML = `<div class="empty-state">هنوز عکسی به گالری اضافه نشده است.</div>`;
+      return;
+    }
+
+    allImages = data;
+    renderFilters(data);
+    renderGrid(data);
+  }
+
+  function renderFilters(data) {
+    const filtersWrap = document.getElementById("gallery-filters");
+
+    const categories = Array.from(
+      new Set(data.map(img => img.category).filter(Boolean))
+    );
+
+    if (categories.length === 0) {
+      filtersWrap.innerHTML = "";
+      return;
+    }
+
+    const chips = [`<button class="filter-chip active" data-cat="all">همه</button>`]
+      .concat(categories.map(cat =>
+        `<button class="filter-chip" data-cat="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
+      ));
+
+    filtersWrap.innerHTML = chips.join("");
+
+    filtersWrap.querySelectorAll(".filter-chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        filtersWrap.querySelectorAll(".filter-chip").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        activeCategory = btn.dataset.cat;
+        const filtered = activeCategory === "all"
+          ? allImages
+          : allImages.filter(img => img.category === activeCategory);
+        renderGrid(filtered);
+      });
+    });
+  }
+
+  function renderGrid(images) {
+    const grid = document.getElementById("gallery-grid");
+
+    if (images.length === 0) {
+      grid.innerHTML = `<div class="empty-state">تصویری در این دسته‌بندی یافت نشد.</div>`;
+      return;
+    }
+
+    grid.innerHTML = images.map((img, idx) => `
+      <figure data-idx="${idx}" data-src="${img.image_url}">
+        <img src="${img.image_url}" alt="${escapeHtml(img.caption || 'تصویر گالری')}" loading="lazy" />
+        ${img.caption ? `<figcaption>${escapeHtml(img.caption)}</figcaption>` : ""}
+      </figure>
+    `).join("");
+
+    grid.querySelectorAll("figure").forEach(fig => {
+      fig.addEventListener("click", () => {
+        const idx = Number(fig.dataset.idx);
+        openLightbox(images[idx]);
+      });
+      fig.style.cursor = "pointer";
+    });
+  }
+
+  // ==================== لایت‌باکس ====================
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightbox-img");
+  const lightboxCaption = document.getElementById("lightbox-caption");
+  const lightboxClose = document.getElementById("lightbox-close");
+
+  function openLightbox(img) {
+    lightboxImg.src = img.image_url;
+    lightboxImg.alt = img.caption || "تصویر گالری";
+    lightboxCaption.textContent = img.caption || "";
+    lightbox.classList.remove("hidden");
+  }
+
+  function closeLightbox() {
+    lightbox.classList.add("hidden");
+    lightboxImg.src = "";
+  }
+
+  lightboxClose.addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeLightbox();
+  });
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
