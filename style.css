@@ -787,3 +787,38 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 480px) {
   .pagination button { width: 34px; height: 34px; font-size: 13px; }
 }
+
+
+
+/*از اینجا به بعد*/
+#intro-loader {
+  position: fixed;
+  inset: 0;
+  background: #ffffff; /* رنگ بک‌گراند سایتت رو اینجا بذار */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease;
+}
+
+#intro-logo {
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+  transform: translate(0, 0) scale(1);
+  transition: transform 1.4s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+#intro-logo.fly {
+  transform: translate(var(--tx), var(--ty)) scale(var(--scale));
+}
+
+#intro-loader.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.intro-active {
+  overflow: hidden;
+}
