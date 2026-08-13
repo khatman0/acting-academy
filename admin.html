@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>پنل مدیریت | آموزشگاه بازیگری</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="admin-layout">
+
+  <!-- منوی کناری -->
+  <aside class="admin-sidebar">
+    <a href="index.html" class="admin-logo">صحنه‌آرت — پنل مدیریت</a>
+    <button class="admin-nav-item active" data-panel="dashboard-panel">🏠 داشبورد</button>
+    <button class="admin-nav-item" data-panel="instructors-panel">🎭 اساتید</button>
+    <button class="admin-nav-item" data-panel="gallery-panel">🖼️ گالری</button>
+    <button class="admin-nav-item" data-panel="posts-panel">📝 وبلاگ</button>
+    <button class="admin-nav-item" id="admin-logout-btn">🚪 خروج</button>
+  </aside>
+
+  <!-- محتوای اصلی -->
+  <main class="admin-main">
+
+    <!-- داشبورد -->
+    <section class="admin-panel active" id="dashboard-panel">
+      <div class="admin-topbar"><h1>داشبورد</h1></div>
+      <div class="grid grid-3">
+        <div class="card"><div class="card-body">
+          <h3 id="stat-instructors">—</h3>
+          <p class="desc">تعداد اساتید</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 id="stat-gallery">—</h3>
+          <p class="desc">تعداد تصاویر گالری</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 id="stat-posts">—</h3>
+          <p class="desc">تعداد مطالب وبلاگ</p>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- مدیریت اساتید -->
+    <section class="admin-panel" id="instructors-panel">
+      <div class="admin-topbar">
+        <h1>مدیریت اساتید</h1>
+        <button class="btn btn-primary btn-sm" id="add-instructor-btn">+ افزودن استاد</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>عکس</th><th>نام</th><th>تخصص</th><th>ترتیب</th><th>عملیات</th></tr>
+        </thead>
+        <tbody id="instructors-table-body">
+          <tr class="admin-empty-row"><td colspan="5">در حال بارگذاری…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- مدیریت گالری -->
+    <section class="admin-panel" id="gallery-panel">
+      <div class="admin-topbar">
+        <h1>مدیریت گالری</h1>
+        <button class="btn btn-primary btn-sm" id="add-gallery-btn">+ افزودن تصویر</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>عکس</th><th>کپشن</th><th>دسته‌بندی</th><th>ترتیب</th><th>عملیات</th></tr>
+        </thead>
+        <tbody id="gallery-table-body">
+          <tr class="admin-empty-row"><td colspan="5">در حال بارگذاری…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- مدیریت وبلاگ -->
+    <section class="admin-panel" id="posts-panel">
+      <div class="admin-topbar">
+        <h1>مدیریت وبلاگ</h1>
+        <button class="btn btn-primary btn-sm" id="add-post-btn">+ نوشته جدید</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>کاور</th><th>عنوان</th><th>وضعیت</th><th>تاریخ انتشار</th><th>عملیات</th></tr>
+        </thead>
+        <tbody id="posts-table-body">
+          <tr class="admin-empty-row"><td colspan="5">در حال بارگذاری…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<!-- محل نمایش مودال‌های فرم (توسط admin.js پر می‌شه) -->
+<div id="modal-root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
