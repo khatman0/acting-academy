@@ -203,6 +203,65 @@ function onAuthChange(callback) {
   });
 }
 
+// ==================== ویرایش پروفایل ====================
+/**
+ * آپدیت نام کامل کاربر توی جدول profiles
+ * @param {string} fullName
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function updateProfile(fullName) {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, message: "ابتدا وارد حساب خود شوید." };
+
+  const { error } = await supabaseClient
+    .from("profiles")
+    .update({ full_name: fullName })
+    .eq("id", user.id);
+
+  if (error) {
+    return { success: false, message: "خطا در ذخیره اطلاعات." };
+  }
+
+  // آپدیت user_metadata هم برای هماهنگی (اختیاری ولی مفید)
+  await supabaseClient.auth.updateUser({ data: { full_name: fullName } });
+
+  return { success: true, message: "اطلاعات با موفقیت ذخیره شد." };
+}
+
+/**
+ * گرفتن اطلاعات پروفایل کاربر فعلی از جدول profiles
+ * @returns {Promise<object|null>}
+ */
+async function getMyProfile() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+// ==================== تغییر رمز عبور ====================
+/**
+ * تغییر رمز عبور کاربر لاگین‌شده
+ * @param {string} newPassword
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function changePassword(newPassword) {
+  const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    return { success: false, message: translateAuthError(error) };
+  }
+
+  return { success: true, message: "رمز عبور با موفقیت تغییر کرد." };
+}
+
 // ==================== مدیریت خودکار دکمه‌های منو ====================
 /**
  * این تابع به‌صورت خودکار (پایین همین فایل) روی هر صفحه‌ای که
@@ -218,6 +277,7 @@ function initNavAuthUI() {
   const loginBtn = document.getElementById("nav-login-btn");
   const adminBtn = document.getElementById("nav-admin-btn");
   const logoutBtn = document.getElementById("nav-logout-btn");
+  const profileBtn = document.getElementById("nav-profile-btn");
 
   async function updateUI(user) {
     const isAdmin = user ? await checkIsAdmin() : false;
@@ -225,6 +285,7 @@ function initNavAuthUI() {
     if (loginBtn) loginBtn.classList.toggle("hidden", !!user);
     if (logoutBtn) logoutBtn.classList.toggle("hidden", !user);
     if (adminBtn) adminBtn.classList.toggle("hidden", !isAdmin);
+    if (profileBtn) profileBtn.classList.toggle("hidden", !user);
   }
 
   // وضعیت اولیه هنگام لود صفحه
