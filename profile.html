@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>پروفایل من | آموزشگاه بازیگری</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">صحنه<span>آرت</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="instructors.html">اساتید</a></li>
+      <li><a href="gallery.html">گالری</a></li>
+      <li><a href="blog.html">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn">ورود</a></li>
+      <li><a href="profile.html" id="nav-profile-btn" class="hidden active">پروفایل من</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- پروفایل -->
+<section class="section" style="padding-top:60px;">
+  <div class="container">
+
+    <!-- حالتی که کاربر لاگین نیست -->
+    <div id="not-logged-in" class="hidden">
+      <div class="empty-state">
+        برای مشاهده‌ی این صفحه ابتدا باید وارد حساب کاربری‌ات بشی.
+        <div style="margin-top:20px;">
+          <a href="login.html" class="btn btn-primary">ورود / ثبت‌نام</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- محتوای پروفایل -->
+    <div id="profile-view" class="hidden">
+      <div class="section-head">
+        <h2>پروفایل من</h2>
+        <p>اطلاعات حساب کاربری‌ات رو از اینجا مدیریت کن.</p>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap:26px; align-items:start;">
+
+        <!-- ویرایش اطلاعات -->
+        <div class="form-card" style="margin:0;">
+          <h2>اطلاعات حساب</h2>
+          <p class="sub">نام نمایشی و ایمیل حساب کاربری‌ات</p>
+
+          <form id="profile-form">
+            <div class="field">
+              <label for="profile-email">ایمیل</label>
+              <input type="email" id="profile-email" disabled />
+            </div>
+            <div class="field">
+              <label for="profile-name">نام کامل</label>
+              <input type="text" id="profile-name" required placeholder="نام و نام‌خانوادگی" />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;" id="profile-submit-btn">ذخیره تغییرات</button>
+            <div id="profile-msg" class="form-msg"></div>
+          </form>
+        </div>
+
+        <!-- تغییر رمز عبور -->
+        <div class="form-card" style="margin:0;">
+          <h2>تغییر رمز عبور</h2>
+          <p class="sub">برای امنیت بیشتر، رمز قوی انتخاب کن.</p>
+
+          <form id="password-form">
+            <div class="field">
+              <label for="new-password">رمز عبور جدید</label>
+              <input type="password" id="new-password" required minlength="6" placeholder="حداقل ۶ کاراکتر" />
+            </div>
+            <div class="field">
+              <label for="new-password-confirm">تکرار رمز عبور جدید</label>
+              <input type="password" id="new-password-confirm" required minlength="6" placeholder="••••••••" />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;" id="password-submit-btn">تغییر رمز عبور</button>
+            <div id="password-msg" class="form-msg"></div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>صحنه‌آرت</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>تماس</h4>
+        <ul>
+          <li>تهران</li>
+          <li>info@example.com</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری صحنه‌آرت. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  init();
+
+  async function init() {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      document.getElementById("not-logged-in").classList.remove("hidden");
+      return;
+    }
+
+    document.getElementById("profile-view").classList.remove("hidden");
+    document.getElementById("profile-email").value = user.email || "";
+
+    const profile = await getMyProfile();
+    document.getElementById("profile-name").value = profile?.full_name || "";
+  }
+
+  // ==================== ذخیره اطلاعات پروفایل ====================
+  const profileForm = document.getElementById("profile-form");
+  const profileMsg = document.getElementById("profile-msg");
+
+  profileForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMsg(profileMsg);
+
+    const submitBtn = document.getElementById("profile-submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "در حال ذخیره…";
+
+    const fullName = document.getElementById("profile-name").value.trim();
+    const result = await updateProfile(fullName);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "ذخیره تغییرات";
+
+    showMsg(profileMsg, result.message, result.success ? "success" : "error");
+  });
+
+  // ==================== تغییر رمز عبور ====================
+  const passwordForm = document.getElementById("password-form");
+  const passwordMsg = document.getElementById("password-msg");
+
+  passwordForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMsg(passwordMsg);
+
+    const newPassword = document.getElementById("new-password").value;
+    const newPasswordConfirm = document.getElementById("new-password-confirm").value;
+
+    if (newPassword !== newPasswordConfirm) {
+      showMsg(passwordMsg, "رمز عبور و تکرار آن یکسان نیستند.", "error");
+      return;
+    }
+
+    const submitBtn = document.getElementById("password-submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "در حال تغییر…";
+
+    const result = await changePassword(newPassword);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "تغییر رمز عبور";
+
+    showMsg(passwordMsg, result.message, result.success ? "success" : "error");
+    if (result.success) passwordForm.reset();
+  });
+
+  // ==================== ابزار نمایش پیام ====================
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.classList.remove("error", "success");
+    el.classList.add("show", type);
+  }
+  function clearMsg(el) {
+    el.classList.remove("show", "error", "success");
+    el.textContent = "";
+  }
+</script>
+</body>
+</html>
