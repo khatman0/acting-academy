@@ -9,7 +9,9 @@
   <link rel="icon" href="favicon.ico">
 </head>
 <body>
-
+<div id="intro-loader">
+  <img src="favicon.ico" alt="گدروزیا" id="intro-logo">
+</div>
 <!-- هدر -->
 <header class="site-header">
   <nav class="container nav">
@@ -195,6 +197,38 @@
 
   loadHomeInstructors();
   loadHomePosts();
+</script>
+  <script>
+  window.addEventListener('load', () => {
+    const loader = document.getElementById('intro-loader');
+    const introLogo = document.getElementById('intro-logo');
+    const target = document.querySelector('.nav-logo');
+
+    document.body.classList.add('intro-active');
+
+    requestAnimationFrame(() => {
+      const targetRect = target.getBoundingClientRect();
+      const startRect = introLogo.getBoundingClientRect();
+
+      const scale = targetRect.height / startRect.height;
+      const deltaX = (targetRect.left + targetRect.width / 2) - (startRect.left + startRect.width / 2);
+      const deltaY = (targetRect.top + targetRect.height / 2) - (startRect.top + startRect.height / 2);
+
+      introLogo.style.setProperty('--tx', `${deltaX}px`);
+      introLogo.style.setProperty('--ty', `${deltaY}px`);
+      introLogo.style.setProperty('--scale', scale);
+
+      setTimeout(() => {
+        introLogo.classList.add('fly');
+        loader.classList.add('hide'); // همزمان با کوچیک شدن، بک‌گراند هم محو میشه و محتوا دیده میشه
+      }, 300);
+
+      setTimeout(() => {
+        document.body.classList.remove('intro-active');
+        loader.remove();
+      }, 1900);
+    });
+  });
 </script>
 </body>
 </html>
