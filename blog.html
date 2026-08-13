@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>وبلاگ | آموزشگاه بازیگری</title>
+<meta name="description" content="اخبار، یادداشت‌ها و مطالب آموزشی آموزشگاه بازیگری صحنه‌آرت" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">صحنه<span>آرت</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="instructors.html">اساتید</a></li>
+      <li><a href="gallery.html">گالری</a></li>
+      <li><a href="blog.html" class="active">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn">ورود</a></li>
+      <li><a href="profile.html" id="nav-profile-btn" class="hidden">پروفایل من</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- لیست مطالب -->
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>اخبار و وبلاگ</h2>
+      <p>تازه‌ترین رویدادها، کارگاه‌ها و یادداشت‌های آموزشگاه.</p>
+    </div>
+
+    <div class="grid grid-3" id="posts-grid">
+      <div class="loader">در حال بارگذاری مطالب…</div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </div>
+</section>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>صحنه‌آرت</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>تماس</h4>
+        <ul>
+          <li>تهران</li>
+          <li>info@example.com</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری صحنه‌آرت. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const POSTS_PER_PAGE = 6;
+  let currentPage = 1;
+  let totalPosts = 0;
+
+  loadPosts(1);
+
+  async function loadPosts(page) {
+    currentPage = page;
+    const grid = document.getElementById("posts-grid");
+    grid.innerHTML = `<div class="loader">در حال بارگذاری مطالب…</div>`;
+
+    const from = (page - 1) * POSTS_PER_PAGE;
+    const to = from + POSTS_PER_PAGE - 1;
+
+    const { data, error, count } = await supabaseClient
+      .from("posts")
+      .select("*", { count: "exact" })
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      grid.innerHTML = `<div class="empty-state">خطا در بارگذاری مطالب.</div>`;
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      grid.innerHTML = `<div class="empty-state">هنوز مطلبی منتشر نشده است.</div>`;
+      document.getElementById("pagination").innerHTML = "";
+      return;
+    }
+
+    totalPosts = count || data.length;
+
+    grid.innerHTML = data.map(post => `
+      <a href="post.html?slug=${encodeURIComponent(post.slug)}" class="card post-card">
+        <div class="card-img">
+          <img src="${post.cover_image_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(post.title)}" loading="lazy" />
+        </div>
+        <div class="card-body">
+          <p class="post-meta">${formatDate(post.published_at)}</p>
+          <h3 class="post-title">${escapeHtml(post.title)}</h3>
+          <p class="post-excerpt">${escapeHtml(truncateText(post.content, 100))}</p>
+        </div>
+      </a>
+    `).join("");
+
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const wrap = document.getElementById("pagination");
+    const totalPages = Math.ceil(totalPosts / POSTS_PER_PAGE);
+
+    if (totalPages <= 1) {
+      wrap.innerHTML = "";
+      return;
+    }
+
+    let buttons = "";
+    for (let i = 1; i <= totalPages; i++) {
+      buttons += `<button class="${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    }
+    wrap.innerHTML = buttons;
+
+    wrap.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        loadPosts(Number(btn.dataset.page));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
