@@ -788,13 +788,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .pagination button { width: 34px; height: 34px; font-size: 13px; }
 }
 
-
-
-/*از اینجا به بعد*/
+/* ---------- انیمیشن ورود (Intro Loader) ---------- */
 #intro-loader {
   position: fixed;
   inset: 0;
-  background: #ffffff; /* رنگ بک‌گراند سایتت رو اینجا بذار */
+  background: var(--stage-black);
   display: flex;
   align-items: center;
   justify-content: center;
