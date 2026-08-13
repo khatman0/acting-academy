@@ -9,7 +9,8 @@
  *
  * instructors: id, name, specialty, bio, photo_url, social_links (jsonb), display_order, created_at
  * gallery:     id, image_url, caption, category, display_order, created_at
- * posts:       id, title, slug, content, cover_image_url, status ('draft'|'published'), published_at, created_at
+ * posts:       id, title, slug, content, cover_image_url, status ('draft'|'published'),
+ *              author_id (fk -> profiles.id), published_at, created_at, updated_at
  *
  * اگه اسم یا نوع یکی از ستون‌ها فرق داره، باید بخش مربوطه رو اصلاح کنی.
  */
@@ -392,7 +393,13 @@ function openPostForm(post) {
     const status = form.querySelector("#f-status").value;
     const coverFile = form.querySelector("#f-cover").files[0];
 
-    const payload = { title, slug, content, status };
+    const payload = {
+      title,
+      slug,
+      content,
+      status,
+      updated_at: new Date().toISOString(),
+    };
 
     // اگه به «منتشرشده» تغییر کرد و قبلاً تاریخ انتشار نداشت، الان رو ثبت کن
     if (status === "published" && !(isEdit && post.published_at)) {
@@ -407,6 +414,10 @@ function openPostForm(post) {
       const { error } = await supabaseClient.from("posts").update(payload).eq("id", post.id);
       if (error) throw error;
     } else {
+      // فقط موقع ساخت پست جدید، نویسنده رو ثبت می‌کنیم
+      const currentUser = await getCurrentUser();
+      payload.author_id = currentUser?.id || null;
+
       const { error } = await supabaseClient.from("posts").insert(payload);
       if (error) throw error;
     }
