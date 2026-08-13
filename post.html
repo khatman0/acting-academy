@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title id="page-title">وبلاگ | آموزشگاه بازیگری</title>
+<meta name="description" id="page-description" content="مطلب وبلاگ آموزشگاه بازیگری صحنه‌آرت" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">صحنه<span>آرت</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="instructors.html">اساتید</a></li>
+      <li><a href="gallery.html">گالری</a></li>
+      <li><a href="blog.html" class="active">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn">ورود</a></li>
+      <li><a href="profile.html" id="nav-profile-btn" class="hidden">پروفایل من</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- محتوای پست -->
+<section class="section">
+  <div class="container">
+    <a href="blog.html" class="back-link">→ بازگشت به وبلاگ</a>
+    <div id="post-content">
+      <div class="loader">در حال بارگذاری مطلب…</div>
+    </div>
+  </div>
+</section>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>صحنه‌آرت</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>تماس</h4>
+        <ul>
+          <li>تهران</li>
+          <li>info@example.com</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری صحنه‌آرت. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const slug = new URLSearchParams(window.location.search).get("slug");
+  loadPost(slug);
+
+  async function loadPost(slug) {
+    const contentWrap = document.getElementById("post-content");
+
+    if (!slug) {
+      contentWrap.innerHTML = `<div class="empty-state">مطلبی مشخص نشده است.</div>`;
+      return;
+    }
+
+    const { data: post, error } = await supabaseClient
+      .from("posts")
+      .select("*")
+      .eq("slug", slug)
+      .eq("status", "published")
+      .single();
+
+    if (error || !post) {
+      contentWrap.innerHTML = `<div class="empty-state">این مطلب یافت نشد یا هنوز منتشر نشده است.</div>`;
+      return;
+    }
+
+    document.getElementById("page-title").textContent = `${post.title} | آموزشگاه بازیگری`;
+    document.getElementById("page-description").setAttribute("content", truncateText(post.content, 150));
+
+    // گرفتن نام نویسنده از جدول profiles (اختیاری — اگه author_id نداشته باشه، نویسنده نمایش داده نمی‌شه)
+    let authorName = "";
+    if (post.author_id) {
+      const { data: author } = await supabaseClient
+        .from("profiles")
+        .select("full_name")
+        .eq("id", post.author_id)
+        .single();
+      authorName = author?.full_name || "";
+    }
+
+    const paragraphs = (post.content || "")
+      .split(/\n+/)
+      .filter(p => p.trim())
+      .map(p => `<p>${escapeHtml(p)}</p>`)
+      .join("");
+
+    contentWrap.innerHTML = `
+      <article class="post-single">
+        ${post.cover_image_url ? `
+        <div class="cover">
+          <img src="${post.cover_image_url}" alt="${escapeHtml(post.title)}" />
+        </div>` : ""}
+
+        <p class="post-meta">
+          ${formatDate(post.published_at)}
+          ${authorName ? ` · نویسنده: ${escapeHtml(authorName)}` : ""}
+        </p>
+        <h1 style="font-size:clamp(26px,4vw,38px); font-weight:900; margin:0 0 26px;">${escapeHtml(post.title)}</h1>
+
+        <div class="content">${paragraphs}</div>
+      </article>
+    `;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
