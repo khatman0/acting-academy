@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title id="page-title">اساتید | آموزشگاه بازیگری</title>
+<meta name="description" content="معرفی اساتید آموزشگاه بازیگری صحنه‌آرت" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">صحنه<span>آرت</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="instructors.html" class="active">اساتید</a></li>
+      <li><a href="gallery.html">گالری</a></li>
+      <li><a href="blog.html">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn">ورود</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ==================== حالت لیست اساتید ==================== -->
+<section class="section" id="instructors-list-view">
+  <div class="container">
+    <div class="section-head">
+      <h2>اساتید آموزشگاه</h2>
+      <p>یادگیری کنار کسانی که خودشان روی صحنه ایستاده‌اند و تجربه واقعی اجرا دارند.</p>
+    </div>
+    <div class="grid grid-4" id="instructors-grid">
+      <div class="loader">در حال بارگذاری اساتید…</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== حالت پروفایل یک استاد ==================== -->
+<section class="section hidden" id="instructor-profile-view">
+  <div class="container">
+    <a href="instructors.html" class="back-link">→ بازگشت به لیست اساتید</a>
+    <div id="instructor-profile-content">
+      <div class="loader">در حال بارگذاری پروفایل…</div>
+    </div>
+  </div>
+</section>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>صحنه‌آرت</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>تماس</h4>
+        <ul>
+          <li>تهران</li>
+          <li>info@example.com</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری صحنه‌آرت. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const listView = document.getElementById("instructors-list-view");
+  const profileView = document.getElementById("instructor-profile-view");
+  const instructorId = new URLSearchParams(window.location.search).get("id");
+
+  if (instructorId) {
+    loadInstructorProfile(instructorId);
+  } else {
+    loadInstructorsList();
+  }
+
+  // ==================== حالت لیست ====================
+  async function loadInstructorsList() {
+    const wrap = document.getElementById("instructors-grid");
+
+    const { data, error } = await supabaseClient
+      .from("instructors")
+      .select("*")
+      .order("display_order", { ascending: true });
+
+    if (error) {
+      wrap.innerHTML = `<div class="empty-state">خطا در بارگذاری اطلاعات اساتید.</div>`;
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      wrap.innerHTML = `<div class="empty-state">هنوز استادی ثبت نشده است.</div>`;
+      return;
+    }
+
+    wrap.innerHTML = data.map(ins => `
+      <a href="instructors.html?id=${ins.id}" class="card">
+        <div class="card-img">
+          <img src="${ins.photo_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(ins.name)}" loading="lazy" />
+        </div>
+        <div class="card-body">
+          <h3>${escapeHtml(ins.name)}</h3>
+          <p class="role">${escapeHtml(ins.specialty || "")}</p>
+        </div>
+      </a>
+    `).join("");
+  }
+
+  // ==================== حالت پروفایل ====================
+  async function loadInstructorProfile(id) {
+    listView.classList.add("hidden");
+    profileView.classList.remove("hidden");
+
+    const content = document.getElementById("instructor-profile-content");
+
+    const { data: ins, error } = await supabaseClient
+      .from("instructors")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !ins) {
+      content.innerHTML = `<div class="empty-state">این استاد یافت نشد یا حذف شده است.</div>`;
+      return;
+    }
+
+    document.getElementById("page-title").textContent = `${ins.name} | آموزشگاه بازیگری`;
+
+    content.innerHTML = `
+      <div class="instructor-profile">
+        <div class="photo">
+          <img src="${ins.photo_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(ins.name)}" />
+        </div>
+        <div class="info">
+          <h1>${escapeHtml(ins.name)}</h1>
+          <span class="specialty">${escapeHtml(ins.specialty || "")}</span>
+
+          <p class="bio">${escapeHtml(ins.bio || "بیوگرافی این استاد هنوز ثبت نشده است.")}</p>
+
+          ${renderSocialLinks(ins.social_links)}
+        </div>
+      </div>
+    `;
+  }
+
+  // ==================== نمایش لینک‌های شبکه‌های اجتماعی ====================
+  /**
+   * social_links یه ستون jsonb هست، مثلاً:
+   * { "instagram": "https://instagram.com/...", "telegram": "https://t.me/...", "website": "https://..." }
+   * هر کلیدی که موجود نباشه، دکمه‌ش نمایش داده نمی‌شه.
+   */
+  const SOCIAL_LABELS = {
+    instagram: "اینستاگرام",
+    telegram: "تلگرام",
+    whatsapp: "واتساپ",
+    linkedin: "لینکدین",
+    website: "وب‌سایت",
+    youtube: "یوتیوب",
+    twitter: "توییتر / X",
+  };
+
+  function renderSocialLinks(socialLinks) {
+    if (!socialLinks || typeof socialLinks !== "object") return "";
+
+    const buttons = Object.entries(socialLinks)
+      .filter(([, url]) => !!url)
+      .map(([key, url]) => {
+        const label = SOCIAL_LABELS[key.toLowerCase()] || key;
+        return `<a href="${encodeURI(url)}" target="_blank" rel="noopener" class="btn btn-outline btn-sm">${escapeHtml(label)}</a>`;
+      });
+
+    if (buttons.length === 0) return "";
+
+    return `<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">${buttons.join("")}</div>`;
+  }
+
+  // جلوگیری از XSS ساده در نمایش متن‌های اومده از دیتابیس
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
