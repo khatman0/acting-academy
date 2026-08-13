@@ -92,6 +92,27 @@
         </div>
       </div>
 
+      <!-- پنل تایید کد ایمیل -->
+      <div id="otp-panel" class="hidden">
+        <h2>تایید ایمیل</h2>
+        <p class="sub">کد ۶رقمی ارسال‌شده به <strong id="otp-email-display"></strong> رو وارد کن.</p>
+
+        <form id="otp-form">
+          <div class="field">
+            <label for="otp-code">کد تایید</label>
+            <input type="text" id="otp-code" required inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                   placeholder="------" style="text-align:center; letter-spacing:10px; font-size:20px;" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;" id="otp-submit-btn">تایید کد</button>
+          <div id="otp-msg" class="form-msg"></div>
+        </form>
+
+        <div class="form-footer-link">
+          کد نرسید؟ <a href="#" id="resend-otp-link">ارسال مجدد کد</a>
+          <span id="resend-cooldown" class="hidden"></span>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -143,6 +164,7 @@
     tabSignupBtn.classList.remove("active");
     loginPanel.classList.remove("hidden");
     signupPanel.classList.add("hidden");
+    resetSignupToForm();
   }
 
   function showSignupPanel() {
@@ -150,6 +172,13 @@
     tabLoginBtn.classList.remove("active");
     signupPanel.classList.remove("hidden");
     loginPanel.classList.add("hidden");
+    resetSignupToForm();
+  }
+
+  function resetSignupToForm() {
+    document.getElementById("signup-form").classList.remove("hidden");
+    document.querySelector("#signup-panel > .form-footer-link").classList.remove("hidden");
+    document.getElementById("otp-panel").classList.add("hidden");
   }
 
   tabLoginBtn.addEventListener("click", showLoginPanel);
@@ -204,6 +233,8 @@
   // ==================== ارسال فرم ثبت‌نام ====================
   const signupForm = document.getElementById("signup-form");
   const signupMsg = document.getElementById("signup-msg");
+  const otpPanel = document.getElementById("otp-panel");
+  let pendingSignupEmail = "";
 
   signupForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -233,9 +264,80 @@
       return;
     }
 
-    showMsg(signupMsg, result.message, "success");
-    signupForm.reset();
+    // ثبت‌نام موفق بود -> برو به مرحله‌ی تایید کد
+    pendingSignupEmail = email;
+    document.getElementById("otp-email-display").textContent = email;
+    signupForm.classList.add("hidden");
+    document.querySelector("#signup-panel > .form-footer-link").classList.add("hidden");
+    otpPanel.classList.remove("hidden");
+    startResendCooldown(60);
   });
+
+  // ==================== تایید کد OTP ====================
+  const otpForm = document.getElementById("otp-form");
+  const otpMsg = document.getElementById("otp-msg");
+
+  otpForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMsg(otpMsg);
+
+    const code = document.getElementById("otp-code").value.trim();
+    const submitBtn = document.getElementById("otp-submit-btn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "در حال بررسی…";
+
+    const result = await verifySignupOtp(pendingSignupEmail, code);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "تایید کد";
+
+    if (!result.success) {
+      showMsg(otpMsg, result.message, "error");
+      return;
+    }
+
+    showMsg(otpMsg, "ایمیلت تایید شد! در حال انتقال…", "success");
+    setTimeout(() => { window.location.href = "index.html"; }, 900);
+  });
+
+  // ==================== ارسال مجدد کد ====================
+  const resendLink = document.getElementById("resend-otp-link");
+  const resendCooldownEl = document.getElementById("resend-cooldown");
+  let resendTimer = null;
+
+  resendLink.addEventListener("click", async (e) => {
+    e.preventDefault();
+    clearMsg(otpMsg);
+
+    const result = await resendSignupOtp(pendingSignupEmail);
+
+    if (!result.success) {
+      showMsg(otpMsg, result.message, "error");
+      return;
+    }
+
+    showMsg(otpMsg, result.message, "success");
+    startResendCooldown(60);
+  });
+
+  function startResendCooldown(seconds) {
+    let remaining = seconds;
+    resendLink.classList.add("hidden");
+    resendCooldownEl.classList.remove("hidden");
+    resendCooldownEl.textContent = `(${remaining} ثانیه دیگه می‌تونی دوباره درخواست بدی)`;
+
+    clearInterval(resendTimer);
+    resendTimer = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(resendTimer);
+        resendCooldownEl.classList.add("hidden");
+        resendLink.classList.remove("hidden");
+        return;
+      }
+      resendCooldownEl.textContent = `(${remaining} ثانیه دیگه می‌تونی دوباره درخواست بدی)`;
+    }, 1000);
+  }
 </script>
 </body>
 </html>
