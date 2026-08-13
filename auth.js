@@ -180,6 +180,12 @@ function translateAuthError(error) {
   if (msg.includes("Unable to validate email address")) {
     return "فرمت ایمیل درست نیست.";
   }
+  if (msg.includes("Token has expired or is invalid")) {
+    return "کد وارد شده اشتباه یا منقضی شده. دوباره تلاش کن یا کد جدید بگیر.";
+  }
+  if (msg.includes("For security purposes")) {
+    return "برای امنیت، چند ثانیه صبر کن و دوباره تلاش کن.";
+  }
 
   return "خطایی رخ داد. لطفاً دوباره تلاش کن.";
 }
@@ -201,6 +207,47 @@ function onAuthChange(callback) {
   supabaseClient.auth.onAuthStateChange((event, session) => {
     callback(session?.user || null);
   });
+}
+
+// ==================== تایید کد ارسال‌شده به ایمیل ====================
+/**
+ * کد ۶رقمی که به ایمیل کاربر ارسال شده رو تایید می‌کنه
+ * (برای تایید ایمیل بعد از ثبت‌نام)
+ * @param {string} email
+ * @param {string} token - کد ۶رقمی
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function verifySignupOtp(email, token) {
+  const { data, error } = await supabaseClient.auth.verifyOtp({
+    email,
+    token,
+    type: "signup",
+  });
+
+  if (error) {
+    return { success: false, message: translateAuthError(error) };
+  }
+
+  return { success: true, message: "ایمیل با موفقیت تایید شد." };
+}
+
+/**
+ * یه کد جدید برای تایید ایمیل به همون ایمیل می‌فرسته
+ * (کد قبلی دیگه معتبر نیست، این جایگزینش می‌شه)
+ * @param {string} email
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+async function resendSignupOtp(email) {
+  const { error } = await supabaseClient.auth.resend({
+    type: "signup",
+    email,
+  });
+
+  if (error) {
+    return { success: false, message: translateAuthError(error) };
+  }
+
+  return { success: true, message: "کد جدید به ایمیلت ارسال شد." };
 }
 
 // ==================== ویرایش پروفایل ====================
