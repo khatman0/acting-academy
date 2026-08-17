@@ -239,15 +239,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .nav-actions {
     flex-direction: column;
     align-items: stretch;
-    margin: 22px 0 0;
-    padding-top: 18px;
+    margin: 26px 0 0;
+    padding-top: 22px;
     border-top: 1px solid rgba(212, 162, 76, 0.15);
-    gap: 12px;
+    gap: 14px;
   }
   .nav-actions .btn {
     width: 100%;
-    padding: 14px 20px;
-    font-size: 15px;
+    padding: 15px 20px;
+    font-size: 15.5px;
+    border-radius: 12px; /* به جای گرد کامل، برای حالت ستونی خواناتره */
+  }
+  .nav-actions .btn-outline {
+    background: rgba(243, 234, 217, 0.06);
+    border-color: rgba(243, 234, 217, 0.25);
+  }
+  .nav-actions .btn-primary {
+    box-shadow: 0 8px 20px -6px rgba(212, 162, 76, 0.4);
   }
 }
 
