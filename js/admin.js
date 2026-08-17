@@ -1,7 +1,7 @@
 /**
  * admin.js
  * ---------------------------------------------------
- * منطق کامل پنل مدیریت: اساتید، گالری، وبلاگ
+ * منطق کامل پنل مدیریت: اساتید، گالری، وبلاگ، نمایش‌ها، بلیط‌ها
  * پیش‌نیاز: باید بعد از supabase-config.js و auth.js لود بشه
  * ---------------------------------------------------
  *
@@ -11,11 +11,17 @@
  * gallery:     id, image_url, caption, category, display_order, created_at
  * posts:       id, title, slug, content, cover_image_url, status ('draft'|'published'),
  *              author_id (fk -> profiles.id), published_at, created_at, updated_at
+ * shows:       id, title, description, cover_image_url, venue, show_date, show_time,
+ *              duration_minutes, price, total_capacity, sold_count (خودکار), status ('draft'|'published'|'closed')
+ * bookings:    id, show_id, buyer_name, buyer_email, buyer_phone, quantity, total_price,
+ *              status ('confirmed'|'cancelled'), created_at
+ *              (این جدول فقط از طریق تابع Postgres به اسم book_tickets پر می‌شه؛ اینجا فقط می‌خونیمش)
  *
  * اگه اسم یا نوع یکی از ستون‌ها فرق داره، باید بخش مربوطه رو اصلاح کنی.
+ * فایل sql/shows_tickets_schema.sql باید قبلاً توی Supabase اجرا شده باشه.
  */
 
-let CURRENT_TAB_DATA = { instructors: [], gallery: [], posts: [] };
+let CURRENT_TAB_DATA = { instructors: [], gallery: [], posts: [], shows: [] };
 
 // ==================== ورود به پنل + گارد ادمین ====================
 (async function initAdminPanel() {
@@ -28,6 +34,8 @@ let CURRENT_TAB_DATA = { instructors: [], gallery: [], posts: [] };
   loadInstructors();
   loadGallery();
   loadPosts();
+  loadShows();
+  loadBookings();
 })();
 
 // ==================== سوییچ تب‌های منوی کناری ====================
@@ -60,13 +68,14 @@ async function loadDashboardStats() {
   document.getElementById("stat-instructors").textContent = ins.count ?? "0";
   document.getElementById("stat-gallery").textContent = gal.count ?? "0";
   document.getElementById("stat-posts").textContent = posts.count ?? "0";
+  // آمار stat-shows و stat-tickets-sold داخل loadShows() و loadBookings() آپدیت می‌شن
 }
 
 // ==================== ابزار کمکی: آپلود عکس در Storage ====================
 /**
  * یه فایل عکس رو توی باکت STORAGE_BUCKET آپلود می‌کنه و لینک عمومیش رو برمی‌گردونه
  * @param {File} file
- * @param {string} folder - زیرپوشه‌ی داخل باکت (مثلاً "instructors", "gallery", "posts")
+ * @param {string} folder - زیرپوشه‌ی داخل باکت (مثلاً "instructors", "gallery", "posts", "shows")
  * @returns {Promise<string>} لینک عمومی عکس
  */
 async function uploadImageToStorage(file, folder) {
@@ -440,4 +449,172 @@ async function deletePost(id) {
   if (error) { alert("خطا در حذف: " + error.message); return; }
   loadPosts();
   loadDashboardStats();
+}
+
+// ==================================================================
+// ==================== مدیریت نمایش‌ها ====================
+// ==================================================================
+
+function formatShowDateAdmin(dateStr) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("fa-IR", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function formatPriceAdmin(n) {
+  return Number(n || 0).toLocaleString("fa-IR") + " تومان";
+}
+
+async function loadShows() {
+  const tbody = document.getElementById("shows-table-body");
+  const { data, error } = await supabaseClient
+    .from("shows")
+    .select("*")
+    .order("show_date", { ascending: true });
+
+  if (error || !data || data.length === 0) {
+    tbody.innerHTML = `<tr class="admin-empty-row"><td colspan="7">${error ? "خطا در بارگذاری." : "هنوز نمایشی ثبت نشده."}</td></tr>`;
+    document.getElementById("stat-shows").textContent = "0";
+    return;
+  }
+
+  CURRENT_TAB_DATA.shows = data;
+
+  const statusLabel = { draft: "پیش‌نویس", published: "منتشرشده", closed: "بسته‌شده" };
+  const statusClass = { draft: "draft", published: "published", closed: "draft" };
+
+  tbody.innerHTML = data.map(show => `
+    <tr>
+      <td><img src="${show.cover_image_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(show.title)}" /></td>
+      <td>${escapeHtml(show.title)}</td>
+      <td>${formatShowDateAdmin(show.show_date)} — ${(show.show_time || "").slice(0,5)}</td>
+      <td>${show.sold_count ?? 0} / ${show.total_capacity ?? 0}</td>
+      <td>${formatPriceAdmin(show.price)}</td>
+      <td><span class="status-badge ${statusClass[show.status] || 'draft'}">${statusLabel[show.status] || show.status}</span></td>
+      <td class="row-actions">
+        <button class="btn btn-outline btn-sm" data-edit-show="${show.id}">ویرایش</button>
+        <button class="btn btn-danger btn-sm" data-delete-show="${show.id}">حذف</button>
+      </td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll("[data-edit-show]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const show = CURRENT_TAB_DATA.shows.find(s => s.id === btn.dataset.editShow);
+      openShowForm(show);
+    });
+  });
+  tbody.querySelectorAll("[data-delete-show]").forEach(btn => {
+    btn.addEventListener("click", () => deleteShow(btn.dataset.deleteShow));
+  });
+
+  // آمار داشبورد: تعداد نمایش‌های منتشرشده
+  const activeCount = data.filter(s => s.status === "published").length;
+  document.getElementById("stat-shows").textContent = activeCount;
+}
+
+document.getElementById("add-show-btn").addEventListener("click", () => openShowForm(null));
+
+function openShowForm(show) {
+  const isEdit = !!show;
+
+  openModal(isEdit ? "ویرایش نمایش" : "افزودن نمایش جدید", `
+    <div class="field"><label>عنوان نمایش</label><input type="text" id="f-title" required value="${isEdit ? escapeHtml(show.title) : ""}" /></div>
+    <div class="field"><label>توضیحات</label><textarea id="f-description">${isEdit ? escapeHtml(show.description || "") : ""}</textarea></div>
+    <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای جایگزینی)" : ""}</label><input type="file" id="f-cover" accept="image/*" ${isEdit ? "" : "required"} /></div>
+    <div class="field"><label>سالن / مکان اجرا</label><input type="text" id="f-venue" value="${isEdit ? escapeHtml(show.venue || "") : ""}" /></div>
+    <div class="field"><label>تاریخ اجرا</label><input type="date" id="f-date" required value="${isEdit ? show.show_date : ""}" /></div>
+    <div class="field"><label>ساعت اجرا</label><input type="time" id="f-time" required value="${isEdit ? (show.show_time || "").slice(0,5) : ""}" /></div>
+    <div class="field"><label>مدت زمان (دقیقه)</label><input type="number" id="f-duration" value="${isEdit ? (show.duration_minutes ?? 90) : 90}" /></div>
+    <div class="field"><label>قیمت هر بلیط (تومان)</label><input type="number" id="f-price" required min="0" value="${isEdit ? show.price : 0}" /></div>
+    <div class="field"><label>ظرفیت کل صندلی</label><input type="number" id="f-capacity" required min="1" value="${isEdit ? show.total_capacity : 50}" /></div>
+    <div class="field">
+      <label>وضعیت</label>
+      <select id="f-status">
+        <option value="draft" ${isEdit && show.status === 'draft' ? 'selected' : ''}>پیش‌نویس</option>
+        <option value="published" ${isEdit && show.status === 'published' ? 'selected' : ''}>منتشرشده (قابل فروش)</option>
+        <option value="closed" ${isEdit && show.status === 'closed' ? 'selected' : ''}>بسته‌شده</option>
+      </select>
+    </div>
+  `, async (form) => {
+    const title = form.querySelector("#f-title").value.trim();
+    const description = form.querySelector("#f-description").value.trim();
+    const venue = form.querySelector("#f-venue").value.trim();
+    const showDate = form.querySelector("#f-date").value;
+    const showTime = form.querySelector("#f-time").value;
+    const duration = Number(form.querySelector("#f-duration").value) || 90;
+    const price = Number(form.querySelector("#f-price").value) || 0;
+    const capacity = Number(form.querySelector("#f-capacity").value) || 1;
+    const status = form.querySelector("#f-status").value;
+    const coverFile = form.querySelector("#f-cover").files[0];
+
+    // جلوگیری از کاهش ظرفیت به کمتر از تعداد بلیط‌های از قبل فروخته‌شده
+    if (isEdit && capacity < (show.sold_count ?? 0)) {
+      throw new Error(`ظرفیت نمی‌تونه کمتر از تعداد بلیط‌های فروخته‌شده (${show.sold_count}) باشه`);
+    }
+
+    const payload = {
+      title, description, venue,
+      show_date: showDate,
+      show_time: showTime,
+      duration_minutes: duration,
+      price, total_capacity: capacity,
+      status,
+    };
+
+    if (coverFile) {
+      payload.cover_image_url = await uploadImageToStorage(coverFile, "shows");
+    }
+
+    if (isEdit) {
+      const { error } = await supabaseClient.from("shows").update(payload).eq("id", show.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient.from("shows").insert(payload);
+      if (error) throw error;
+    }
+
+    loadShows();
+  });
+}
+
+async function deleteShow(id) {
+  if (!confirm("مطمئنی می‌خوای این نمایش رو حذف کنی؟ بلیط‌های فروخته‌شده‌ی مرتبط باهاش هم حذف می‌شن.")) return;
+  const { error } = await supabaseClient.from("shows").delete().eq("id", id);
+  if (error) { alert("خطا در حذف: " + error.message); return; }
+  loadShows();
+  loadBookings();
+}
+
+// ==================================================================
+// ==================== بلیط‌های فروخته‌شده ====================
+// ==================================================================
+
+async function loadBookings() {
+  const tbody = document.getElementById("bookings-table-body");
+  const { data, error } = await supabaseClient
+    .from("bookings")
+    .select("*, shows(title)")
+    .order("created_at", { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    tbody.innerHTML = `<tr class="admin-empty-row"><td colspan="7">${error ? "خطا در بارگذاری." : "هنوز بلیطی فروخته نشده."}</td></tr>`;
+    document.getElementById("stat-tickets-sold").textContent = "0";
+    return;
+  }
+
+  const confirmedOnly = data.filter(b => b.status === "confirmed");
+  const totalTickets = confirmedOnly.reduce((sum, b) => sum + (b.quantity || 0), 0);
+  document.getElementById("stat-tickets-sold").textContent = totalTickets;
+
+  tbody.innerHTML = data.map(b => `
+    <tr>
+      <td>${escapeHtml(b.shows?.title || "—")}</td>
+      <td>${escapeHtml(b.buyer_name)}</td>
+      <td>${escapeHtml(b.buyer_phone || "—")}${b.buyer_email ? " / " + escapeHtml(b.buyer_email) : ""}</td>
+      <td>${b.quantity}</td>
+      <td>${formatPriceAdmin(b.total_price)}</td>
+      <td style="font-family:monospace;font-size:12px;">${b.id.slice(0, 8)}</td>
+      <td>${new Date(b.created_at).toLocaleDateString('fa-IR')}</td>
+    </tr>
+  `).join("");
 }
