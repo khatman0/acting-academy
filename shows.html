@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>نمایش‌ها و اجراها | آموزشگاه بازیگری</title>
+<meta name="description" content="خرید بلیط نمایش‌ها و اجراهای آموزشگاه بازیگری" />
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="favicon.ico">
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">گدرو<span>زیا</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="instructors.html">اساتید</a></li>
+      <li><a href="shows.html" class="active">نمایش‌ها</a></li>
+      <li><a href="gallery.html">گالری</a></li>
+      <li><a href="blog.html">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn">ورود</a></li>
+      <li><a href="profile.html" id="nav-profile-btn" class="hidden">پروفایل من</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- هیرو کوچک صفحه -->
+<section class="hero" style="padding:60px 0 50px;">
+  <div class="hero-curtain-left"></div>
+  <div class="hero-curtain-right"></div>
+  <div class="container">
+    <div class="hero-content">
+      <span class="eyebrow">بلیط آنلاین</span>
+      <h1>نمایش‌های <span class="accent">در حال اجرا</span></h1>
+      <p class="lead">برای هر اجرا، ظرفیت صندلی محدوده. بلیط رو زودتر رزرو کن تا جا نمونی.</p>
+    </div>
+  </div>
+</section>
+
+<!-- لیست نمایش‌ها -->
+<section class="section">
+  <div class="container">
+    <div class="grid grid-3" id="shows-grid">
+      <div class="loader">در حال بارگذاری نمایش‌ها…</div>
+    </div>
+  </div>
+</section>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>گدروزیا</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="shows.html">نمایش‌ها</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>آدرس</h4>
+        <ul>
+          <li>جیرفت</li>
+          <li>چهارراه مسجد رقیه، آموزشگاه بازیگری گدروزیا</li>
+        </ul>
+         <h4>تماس</h4>
+        <ul>
+          <li>0919 373 0925</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری گدروزیا. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script src="js/tickets.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+  loadShowsList();
+</script>
+</body>
+</html>
