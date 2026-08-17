@@ -19,6 +19,8 @@
     <button class="admin-nav-item" data-panel="instructors-panel">🎭 اساتید</button>
     <button class="admin-nav-item" data-panel="gallery-panel">🖼️ گالری</button>
     <button class="admin-nav-item" data-panel="posts-panel">📝 وبلاگ</button>
+    <button class="admin-nav-item" data-panel="shows-panel">🎟️ نمایش‌ها</button>
+    <button class="admin-nav-item" data-panel="bookings-panel">🧾 بلیط‌های فروخته‌شده</button>
     <button class="admin-nav-item" id="admin-logout-btn">🚪 خروج</button>
   </aside>
 
@@ -40,6 +42,14 @@
         <div class="card"><div class="card-body">
           <h3 id="stat-posts">—</h3>
           <p class="desc">تعداد مطالب وبلاگ</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 id="stat-shows">—</h3>
+          <p class="desc">نمایش‌های فعال</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 id="stat-tickets-sold">—</h3>
+          <p class="desc">بلیط‌های فروخته‌شده</p>
         </div></div>
       </div>
     </section>
@@ -88,6 +98,37 @@
         </thead>
         <tbody id="posts-table-body">
           <tr class="admin-empty-row"><td colspan="5">در حال بارگذاری…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- مدیریت نمایش‌ها -->
+    <section class="admin-panel" id="shows-panel">
+      <div class="admin-topbar">
+        <h1>مدیریت نمایش‌ها</h1>
+        <button class="btn btn-primary btn-sm" id="add-show-btn">+ افزودن نمایش</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>کاور</th><th>عنوان</th><th>تاریخ / ساعت</th><th>ظرفیت</th><th>قیمت</th><th>وضعیت</th><th>عملیات</th></tr>
+        </thead>
+        <tbody id="shows-table-body">
+          <tr class="admin-empty-row"><td colspan="7">در حال بارگذاری…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- بلیط‌های فروخته‌شده -->
+    <section class="admin-panel" id="bookings-panel">
+      <div class="admin-topbar">
+        <h1>بلیط‌های فروخته‌شده</h1>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>نمایش</th><th>خریدار</th><th>تماس</th><th>تعداد</th><th>مبلغ</th><th>کد رزرو</th><th>تاریخ خرید</th></tr>
+        </thead>
+        <tbody id="bookings-table-body">
+          <tr class="admin-empty-row"><td colspan="7">در حال بارگذاری…</td></tr>
         </tbody>
       </table>
     </section>
