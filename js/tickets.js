@@ -1,14 +1,18 @@
 /**
  * tickets.js
  * ---------------------------------------------------
- * منطق صفحات عمومی «نمایش‌ها»: لیست نمایش‌ها، صفحه‌ی جزئیات
- * و فرم خرید بلیط (مهمان، بدون نیاز به لاگین).
+ * منطق صفحات عمومی «نمایش‌ها»: لیست نمایش‌ها، صفحه‌ی جزئیات،
+ * فرم خرید بلیط (مهمان)، و صفحه‌ی تایید بازگشت از درگاه پرداخت.
  *
  * پیش‌نیاز: باید بعد از supabase-config.js لود بشه.
- * جدول‌ها و تابع book_tickets باید از قبل توی Supabase
- * با فایل sql/shows_tickets_schema.sql ساخته شده باشن.
+ * جدول‌ها و توابع Postgres باید از قبل توی Supabase با
+ * sql/shows_tickets_schema.sql و sql/payment_schema_update.sql ساخته شده باشن.
+ * دو Edge Function هم باید دیپلوی شده باشن: create-payment و verify-payment.
  * ---------------------------------------------------
  */
+
+// ⚠️ آدرس پروژه‌ی Supabase‌ت - اگه پروژه عوض شد این رو آپدیت کن
+const FUNCTIONS_BASE_URL = "https://xocyuazlqoppzapgmgqr.supabase.co/functions/v1";
 
 function escapeHtmlTickets(str) {
   const div = document.createElement("div");
@@ -128,7 +132,7 @@ async function loadShowDetail() {
           <label>مبلغ قابل پرداخت</label>
           <input type="text" id="t-total" value="${formatPrice(show.price)}" disabled />
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;">ثبت رزرو بلیط</button>
+        <button type="submit" class="btn btn-primary" style="width:100%;">پرداخت و ثبت بلیط</button>
         <div class="form-msg" id="ticket-msg"></div>
       </form>
       `}
@@ -156,31 +160,75 @@ async function loadShowDetail() {
     const quantity = Number(qtyInput.value);
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "در حال ثبت…";
+    submitBtn.textContent = "در حال اتصال به درگاه پرداخت…";
 
-    const { data, error } = await supabaseClient.rpc("book_tickets", {
-      p_show_id: show.id,
-      p_buyer_name: name,
-      p_buyer_email: email || null,
-      p_buyer_phone: phone,
-      p_quantity: quantity,
-    });
+    try {
+      const res = await fetch(`${FUNCTIONS_BASE_URL}/create-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          show_id: show.id,
+          buyer_name: name,
+          buyer_email: email || null,
+          buyer_phone: phone,
+          quantity: quantity,
+        }),
+      });
 
-    if (error) {
-      msgEl.textContent = "خطا: " + (error.message || "مشکلی در ثبت رزرو پیش اومد.");
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
+        throw new Error(result.error || "خطا در اتصال به درگاه پرداخت");
+      }
+
+      // انتقال کاربر به صفحه‌ی پرداخت زرین‌پال
+      window.location.href = result.payment_url;
+    } catch (err) {
+      msgEl.textContent = "خطا: " + (err.message || "مشکلی در ثبت رزرو پیش اومد.");
       msgEl.classList.add("show", "error");
       submitBtn.disabled = false;
-      submitBtn.textContent = "ثبت رزرو بلیط";
-      return;
+      submitBtn.textContent = "پرداخت و ثبت بلیط";
     }
-
-    const booking = data[0];
-    document.getElementById("ticket-form-card").innerHTML = `
-      <h2>رزرو با موفقیت ثبت شد ✅</h2>
-      <p class="sub">کد پیگیری بلیط شما:</p>
-      <p style="font-size:20px;font-weight:800;color:var(--marquee-gold);letter-spacing:1px;">${booking.booking_id}</p>
-      <p class="sub">این کد رو یادداشت کن یا از صفحه اسکرین‌شات بگیر؛ موقع ورود به سالن نشونش بده.</p>
-      <a href="shows.html" class="btn btn-outline" style="width:100%;margin-top:10px;">بازگشت به لیست نمایش‌ها</a>
-    `;
   });
+}
+
+// ==================== صفحه‌ی تایید بازگشت از درگاه پرداخت ====================
+async function verifyPayment() {
+  const wrap = document.getElementById("verify-result-wrap");
+  const params = new URLSearchParams(window.location.search);
+  const bookingId = params.get("booking_id");
+  const authority = params.get("Authority");
+  const status = params.get("Status");
+
+  if (!bookingId) {
+    wrap.innerHTML = `<div class="empty-state">اطلاعات پرداخت ناقص است.</div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${FUNCTIONS_BASE_URL}/verify-payment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ booking_id: bookingId, authority, status }),
+    });
+    const result = await res.json();
+
+    if (result.success) {
+      wrap.innerHTML = `
+        <h2>پرداخت با موفقیت انجام شد ✅</h2>
+        <p class="sub">کد پیگیری تراکنش شما:</p>
+        <p style="font-size:20px;font-weight:800;color:var(--marquee-gold);letter-spacing:1px;">${escapeHtmlTickets(result.ref_id || "")}</p>
+        <p class="sub">این کد رو یادداشت کن یا از صفحه اسکرین‌شات بگیر؛ موقع ورود به سالن نشونش بده.</p>
+        <a href="shows.html" class="btn btn-outline" style="width:100%;margin-top:10px;">بازگشت به لیست نمایش‌ها</a>
+      `;
+    } else {
+      wrap.innerHTML = `
+        <h2>پرداخت ناموفق بود ❌</h2>
+        <p class="sub">${escapeHtmlTickets(result.message || result.error || "پرداخت انجام نشد یا لغو شد.")}</p>
+        <a href="shows.html" class="btn btn-outline" style="width:100%;margin-top:10px;">بازگشت به لیست نمایش‌ها</a>
+      `;
+    }
+  } catch (err) {
+    wrap.innerHTML = `<div class="empty-state">خطا در بررسی نتیجه‌ی پرداخت. اگه مبلغ از حسابت کم شده، با پشتیبانی تماس بگیر.</div>`;
+  }
 }
