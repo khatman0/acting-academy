@@ -15,6 +15,7 @@
   <!-- منوی کناری -->
   <aside class="admin-sidebar">
     <a href="index.html" class="admin-logo">'گدروزیا — پنل مدیریت</a>
+    <a href="index.html" class="admin-nav-item" style="display:block;text-decoration:none;">🔙 بازگشت به سایت</a>
     <button class="admin-nav-item active" data-panel="dashboard-panel">🏠 داشبورد</button>
     <button class="admin-nav-item" data-panel="instructors-panel">🎭 اساتید</button>
     <button class="admin-nav-item" data-panel="gallery-panel">🖼️ گالری</button>
@@ -122,6 +123,9 @@
     <section class="admin-panel" id="bookings-panel">
       <div class="admin-topbar">
         <h1>بلیط‌های فروخته‌شده</h1>
+      </div>
+      <div class="field" style="max-width:340px;margin-bottom:16px;">
+        <input type="text" id="bookings-search-input" placeholder="جستجو بر اساس نام، شماره تماس، ایمیل یا نمایش…" />
       </div>
       <table class="data-table">
         <thead>
