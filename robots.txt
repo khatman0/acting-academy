@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /login.html
+Disallow: /profile.html
+Disallow: /js/
+
+Sitemap: https://gedrosia-act.ir/sitemap.xml
