@@ -602,11 +602,24 @@ async function loadBookings() {
     return;
   }
 
+  CURRENT_TAB_DATA.bookings = data;
+
   const confirmedOnly = data.filter(b => b.status === "confirmed");
   const totalTickets = confirmedOnly.reduce((sum, b) => sum + (b.quantity || 0), 0);
   document.getElementById("stat-tickets-sold").textContent = totalTickets;
 
-  tbody.innerHTML = data.map(b => `
+  renderBookingsTable(data);
+}
+
+function renderBookingsTable(list) {
+  const tbody = document.getElementById("bookings-table-body");
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = `<tr class="admin-empty-row"><td colspan="7">با این عبارت نتیجه‌ای پیدا نشد.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(b => `
     <tr>
       <td>${escapeHtml(b.shows?.title || "—")}</td>
       <td>${escapeHtml(b.buyer_name)}</td>
@@ -617,4 +630,30 @@ async function loadBookings() {
       <td>${new Date(b.created_at).toLocaleDateString('fa-IR')}</td>
     </tr>
   `).join("");
+}
+
+// ---------- جستجوی بلیط‌ها ----------
+const bookingsSearchInput = document.getElementById("bookings-search-input");
+if (bookingsSearchInput) {
+  bookingsSearchInput.addEventListener("input", () => {
+    const q = bookingsSearchInput.value.trim().toLowerCase();
+    const all = CURRENT_TAB_DATA.bookings || [];
+
+    if (!q) {
+      renderBookingsTable(all);
+      return;
+    }
+
+    const filtered = all.filter(b => {
+      return (
+        (b.buyer_name || "").toLowerCase().includes(q) ||
+        (b.buyer_phone || "").toLowerCase().includes(q) ||
+        (b.buyer_email || "").toLowerCase().includes(q) ||
+        (b.shows?.title || "").toLowerCase().includes(q) ||
+        b.id.toLowerCase().includes(q)
+      );
+    });
+
+    renderBookingsTable(filtered);
+  });
 }
