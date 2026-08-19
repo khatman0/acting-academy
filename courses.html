@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title id="page-title">دوره‌ها | آموزشگاه بازیگری</title>
+<meta name="description" content="دوره‌ها و کلاس‌های آموزشگاه بازیگری گدروزیا" />
+<link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="favicon.ico">
+</head>
+<body>
+
+<!-- هدر -->
+<header class="site-header">
+  <nav class="container nav">
+    <a href="index.html" class="nav-logo">گدرو<span>زیا</span></a>
+    <button class="nav-toggle" id="nav-toggle" aria-label="منو">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="index.html">خانه</a></li>
+      <li><a href="about.html">درباره ما</a></li>
+      <li><a href="courses.html" class="active">دوره‌ها</a></li>
+      <li><a href="instructors.html">اساتید</a></li>
+      <li><a href="gallery.html">گالری</a></li>
+      <li><a href="shows.html">نمایش‌ها</a></li>
+      <li><a href="blog.html">اخبار و وبلاگ</a></li>
+      <li><a href="login.html" id="nav-login-btn">ورود</a></li>
+      <li><a href="profile.html" id="nav-profile-btn" class="hidden">پروفایل من</a></li>
+      <li><a href="admin.html" id="nav-admin-btn" class="hidden">پنل ادمین</a></li>
+      <li><a href="#" id="nav-logout-btn" class="hidden">خروج</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- ==================== حالت لیست دوره‌ها ==================== -->
+<section class="section" id="courses-list-view" style="padding-top:60px;">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">مسیر آموزشی</span>
+      <h2>دوره‌های آموزشگاه بازیگری</h2>
+      <p>از اولین قدم تا ایستادن روی صحنه؛ هر دوره با تمرین عملی، بازخورد فردی و یک اجرای واقعی جمع‌بندی می‌شود.</p>
+    </div>
+    <div class="grid grid-3" id="courses-grid">
+      <div class="loader">در حال بارگذاری دوره‌ها…</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== حالت جزئیات یک دوره ==================== -->
+<section class="section hidden" id="course-profile-view" style="padding-top:60px;">
+  <div class="container">
+    <a href="courses.html" class="back-link">→ بازگشت به لیست دوره‌ها</a>
+    <div id="course-profile-content">
+      <div class="loader">در حال بارگذاری دوره…</div>
+    </div>
+  </div>
+</section>
+
+<!-- فوتر -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>گدروزیا</h4>
+        <p style="max-width:260px;font-size:14px;">آموزشگاه بازیگری، جایی برای یادگیری واقعی هنر اجرا.</p>
+      </div>
+      <div>
+        <h4>لینک‌ها</h4>
+        <ul>
+          <li><a href="about.html">درباره ما</a></li>
+          <li><a href="courses.html">دوره‌ها</a></li>
+          <li><a href="instructors.html">اساتید</a></li>
+          <li><a href="gallery.html">گالری</a></li>
+          <li><a href="blog.html">وبلاگ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>آدرس</h4>
+        <ul>
+          <li>جیرفت</li>
+          <li>چهارراه مسجد رقیه، آموزشگاه بازیگری گدروزیا</li>
+        </ul>
+         <h4>تماس</h4>
+        <ul>
+          <li>0925 373 0919</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© <span id="year"></span> آموزشگاه بازیگری گدروزیا. تمامی حقوق محفوظ است.</div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const listView = document.getElementById("courses-list-view");
+  const profileView = document.getElementById("course-profile-view");
+  const courseId = new URLSearchParams(window.location.search).get("id");
+
+  if (courseId) {
+    loadCourseProfile(courseId);
+  } else {
+    loadCoursesList();
+  }
+
+  // ==================== حالت لیست ====================
+  async function loadCoursesList() {
+    const wrap = document.getElementById("courses-grid");
+
+    const { data, error } = await supabaseClient
+      .from("courses")
+      .select("*")
+      .order("display_order", { ascending: true });
+
+    if (error) {
+      wrap.innerHTML = `<div class="empty-state">خطا در بارگذاری دوره‌ها.</div>`;
+      console.error(error);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      wrap.innerHTML = `<div class="empty-state">هنوز دوره‌ای ثبت نشده است.</div>`;
+      return;
+    }
+
+    wrap.innerHTML = data.map(c => `
+      <a href="courses.html?id=${c.id}" class="card course-card">
+        <div class="card-img">
+          <img src="${c.cover_image_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(c.title)}" loading="lazy" />
+        </div>
+        <div class="card-body">
+          ${c.level ? `<span class="course-level">${escapeHtml(c.level)}</span>` : ""}
+          <h3>${escapeHtml(c.title)}</h3>
+          <p class="desc">${escapeHtml(c.short_description || "")}</p>
+          <div class="course-footer">
+            ${c.price ? `<span class="course-price">${escapeHtml(c.price)}</span>` : "<span></span>"}
+            <span class="btn btn-outline btn-sm">اطلاعات بیشتر</span>
+          </div>
+        </div>
+      </a>
+    `).join("");
+  }
+
+  // ==================== حالت جزئیات ====================
+  async function loadCourseProfile(id) {
+    listView.classList.add("hidden");
+    profileView.classList.remove("hidden");
+
+    const content = document.getElementById("course-profile-content");
+
+    const { data: course, error } = await supabaseClient
+      .from("courses")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !course) {
+      content.innerHTML = `<div class="empty-state">این دوره یافت نشد یا حذف شده است.</div>`;
+      return;
+    }
+
+    document.getElementById("page-title").textContent = `${course.title} | آموزشگاه بازیگری`;
+
+    content.innerHTML = `
+      <div class="instructor-profile course-profile">
+        <div class="photo">
+          <img src="${course.cover_image_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(course.title)}" />
+        </div>
+        <div class="info">
+          ${course.level ? `<span class="specialty">${escapeHtml(course.level)}</span>` : ""}
+          <h1>${escapeHtml(course.title)}</h1>
+
+          <div class="instructor-stats">
+            ${course.duration ? `<div class="stat"><span class="num">${escapeHtml(course.duration)}</span><span class="label">مدت دوره</span></div>` : ""}
+            ${course.sessions ? `<div class="stat"><span class="num">${escapeHtml(course.sessions)}</span><span class="label">تعداد جلسات</span></div>` : ""}
+            ${course.price ? `<div class="stat"><span class="num">${escapeHtml(course.price)}</span><span class="label">شهریه</span></div>` : ""}
+          </div>
+
+          <p class="bio">${escapeHtml(course.full_description || course.short_description || "توضیحات این دوره هنوز ثبت نشده است.")}</p>
+
+          <div class="prereg-box" id="prereg-box">
+            <h3>پیش‌ثبت‌نام در این دوره</h3>
+            <p class="prereg-desc">شماره تماستون رو بذارید تا همکاران ما باهاتون تماس بگیرن و ثبت‌نامتون رو تکمیل کنن.</p>
+            <form id="prereg-form">
+              <div class="field">
+                <label for="pr-name">نام و نام خانوادگی</label>
+                <input type="text" id="pr-name" required placeholder="مثلاً: علی رضایی" />
+              </div>
+              <div class="field">
+                <label for="pr-phone">شماره تماس</label>
+                <input type="tel" id="pr-phone" required placeholder="09xxxxxxxxx" pattern="[0-9۰-۹\\s\\-]{8,15}" />
+              </div>
+              <div class="field">
+                <label for="pr-notes">توضیح یا سوال (اختیاری)</label>
+                <textarea id="pr-notes" placeholder="مثلاً: بهترین زمان تماس، سوال درباره دوره و..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary" id="prereg-submit-btn">ثبت درخواست پیش‌ثبت‌نام</button>
+              <div id="prereg-msg" class="form-msg"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    setupPreregForm(course.id);
+  }
+
+  // ==================== فرم پیش‌ثبت‌نام ====================
+  function setupPreregForm(courseId) {
+    const form = document.getElementById("prereg-form");
+    const msgEl = document.getElementById("prereg-msg");
+    const submitBtn = document.getElementById("prereg-submit-btn");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const fullName = document.getElementById("pr-name").value.trim();
+      const phone = document.getElementById("pr-phone").value.trim();
+      const notes = document.getElementById("pr-notes").value.trim();
+
+      msgEl.classList.remove("show", "error", "success");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "در حال ارسال…";
+
+      const { error } = await supabaseClient.from("course_preregistrations").insert({
+        course_id: courseId,
+        full_name: fullName,
+        phone: phone,
+        notes: notes || null,
+      });
+
+      if (error) {
+        console.error(error);
+        msgEl.textContent = "خطا در ارسال درخواست. لطفاً دوباره تلاش کنید.";
+        msgEl.classList.add("show", "error");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "ثبت درخواست پیش‌ثبت‌نام";
+        return;
+      }
+
+      msgEl.textContent = "درخواست شما ثبت شد. به‌زودی باهاتون تماس می‌گیریم!";
+      msgEl.classList.add("show", "success");
+      form.reset();
+      submitBtn.textContent = "ثبت شد ✓";
+    });
+  }
+
+  // جلوگیری از XSS ساده در نمایش متن‌های اومده از دیتابیس
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
