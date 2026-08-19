@@ -1,4 +1,4 @@
- /* ==========================================================
+/* ==========================================================
    style.css — سیستم طراحی مشترک آموزشگاه بازیگری
    الهام گرفته از فضای پشت‌صحنه تئاتر: تاریکی صحنه، نور اسپات‌لایت، پرده مخملی
    ========================================================== */
@@ -827,4 +827,75 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 
 body.intro-active {
   overflow: hidden;
+}
+
+/* ==========================================================
+   استایل‌های دوره‌ها (courses.html + admin.html)
+   ========================================================== */
+
+/* --- کارت دوره در لیست --- */
+.course-card .card-body { display: flex; flex-direction: column; }
+
+.course-level {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(212, 162, 76, 0.15);
+  color: var(--marquee-gold-light);
+  margin-bottom: 14px;
+}
+
+.course-card h3 { margin-top: 0; margin-bottom: 8px; }
+
+.course-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(212, 162, 76, 0.12);
+  flex-wrap: wrap;
+}
+
+.course-price {
+  font-weight: 800;
+  color: var(--marquee-gold-light);
+  font-size: 15px;
+}
+
+/* --- صفحه جزئیات دوره (از روی .instructor-profile استفاده می‌کنه) --- */
+.course-profile .photo { aspect-ratio: 16/10; }
+
+@media (max-width: 720px) {
+  .course-profile .photo { aspect-ratio: 16/10; max-width: 100%; }
+}
+
+/* --- باکس فرم پیش‌ثبت‌نام در صفحه جزئیات دوره --- */
+.prereg-box {
+  margin-top: 34px;
+  padding: 26px;
+  background: var(--plum-shadow);
+  border: 1px solid rgba(212, 162, 76, 0.15);
+  border-radius: var(--radius-lg);
+}
+
+.prereg-box h3 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.prereg-box .prereg-desc {
+  color: var(--muted-text);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+
+.prereg-box form { max-width: 480px; }
+
+@media (max-width: 720px) {
+  .prereg-box { padding: 20px; }
 }
