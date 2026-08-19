@@ -8,7 +8,8 @@
  * ⚠️ ساختار جدول‌هایی که این فایل باهاشون کار می‌کنه:
  *
  * instructors: id, name, specialty, bio, photo_url, social_links (jsonb), display_order, created_at
- * gallery:     id, image_url, caption, category, display_order, created_at
+ * gallery:     id, images (jsonb - آرایه‌ای از لینک‌ها), caption, category, display_order, created_at
+ *              (ستون قدیمی image_url هم برای سازگاری خونده می‌شه اگه images خالی باشه)
  * posts:       id, title, slug, content, cover_image_url, status ('draft'|'published'),
  *              author_id (fk -> profiles.id), published_at, created_at, updated_at
  * shows:       id, title, description, cover_image_url, venue, show_date, show_time,
@@ -19,6 +20,7 @@
  *
  * اگه اسم یا نوع یکی از ستون‌ها فرق داره، باید بخش مربوطه رو اصلاح کنی.
  * فایل sql/shows_tickets_schema.sql باید قبلاً توی Supabase اجرا شده باشه.
+ * برای گالری هم باید قبلاً gallery_multi_image_migration.sql اجرا شده باشه.
  */
 
 let CURRENT_TAB_DATA = { instructors: [], gallery: [], posts: [], shows: [] };
@@ -89,6 +91,21 @@ async function uploadImageToStorage(file, folder) {
 
   if (error) throw error;
   return getPublicImageUrl(path);
+}
+
+/**
+ * چند فایل رو هم‌زمان آپلود می‌کنه و آرایه‌ی لینک‌های عمومی رو برمی‌گردونه
+ * @param {File[]} files
+ * @param {string} folder
+ * @returns {Promise<string[]>}
+ */
+async function uploadMultipleImagesToStorage(files, folder) {
+  const urls = [];
+  for (const file of files) {
+    const url = await uploadImageToStorage(file, folder);
+    urls.push(url);
+  }
+  return urls;
 }
 
 // ==================== ابزار کمکی: مودال عمومی ====================
@@ -244,8 +261,22 @@ async function deleteInstructor(id) {
 }
 
 // ==================================================================
-// ==================== مدیریت گالری ====================
+// ==================== مدیریت گالری (چند عکس در هر آلبوم) ====================
 // ==================================================================
+
+/**
+ * هر ردیف gallery رو نرمال می‌کنه به یک آرایه‌ی images
+ * (سازگار با رکوردهای قدیمی که فقط image_url داشتن)
+ */
+function getGalleryImagesArray(item) {
+  if (Array.isArray(item.images) && item.images.length > 0) {
+    return item.images;
+  }
+  if (item.image_url) {
+    return [item.image_url];
+  }
+  return [];
+}
 
 async function loadGallery() {
   const tbody = document.getElementById("gallery-table-body");
@@ -261,54 +292,106 @@ async function loadGallery() {
 
   CURRENT_TAB_DATA.gallery = data;
 
-  tbody.innerHTML = data.map(img => `
+  tbody.innerHTML = data.map(item => {
+    const images = getGalleryImagesArray(item);
+    const cover = images[0] || "assets/placeholder.jpg";
+    const count = images.length;
+    return `
     <tr>
-      <td><img src="${img.image_url}" alt="${escapeHtml(img.caption || '')}" /></td>
-      <td>${escapeHtml(img.caption || "—")}</td>
-      <td>${escapeHtml(img.category || "—")}</td>
-      <td>${img.display_order ?? 0}</td>
+      <td>
+        <div style="position:relative;display:inline-block;">
+          <img src="${cover}" alt="${escapeHtml(item.caption || '')}" />
+          ${count > 1 ? `<span style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.65);color:#fff;font-size:11px;padding:1px 6px;border-radius:999px;">🖼 ${count}</span>` : ""}
+        </div>
+      </td>
+      <td>${escapeHtml(item.caption || "—")}</td>
+      <td>${escapeHtml(item.category || "—")}</td>
+      <td>${item.display_order ?? 0}</td>
       <td class="row-actions">
-        <button class="btn btn-outline btn-sm" data-edit-gallery="${img.id}">ویرایش</button>
-        <button class="btn btn-danger btn-sm" data-delete-gallery="${img.id}">حذف</button>
+        <button class="btn btn-outline btn-sm" data-edit-gallery="${item.id}">ویرایش</button>
+        <button class="btn btn-danger btn-sm" data-delete-gallery="${item.id}">حذف</button>
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 
   tbody.querySelectorAll("[data-edit-gallery]").forEach(btn => {
     btn.addEventListener("click", () => {
-      const img = CURRENT_TAB_DATA.gallery.find(i => i.id === btn.dataset.editGallery);
-      openGalleryForm(img);
+      const item = CURRENT_TAB_DATA.gallery.find(i => i.id === btn.dataset.editGallery);
+      openGalleryForm(item);
     });
   });
   tbody.querySelectorAll("[data-delete-gallery]").forEach(btn => {
-    btn.addEventListener("click", () => deleteGalleryImage(btn.dataset.deleteGallery));
+    btn.addEventListener("click", () => deleteGalleryItem(btn.dataset.deleteGallery));
   });
 }
 
 document.getElementById("add-gallery-btn").addEventListener("click", () => openGalleryForm(null));
 
-function openGalleryForm(image) {
-  const isEdit = !!image;
+function openGalleryForm(item) {
+  const isEdit = !!item;
 
-  openModal(isEdit ? "ویرایش تصویر" : "افزودن تصویر جدید", `
-    <div class="field"><label>فایل عکس ${isEdit ? "(اختیاری — برای جایگزینی)" : ""}</label><input type="file" id="f-image" accept="image/*" ${isEdit ? "" : "required"} /></div>
-    <div class="field"><label>کپشن</label><input type="text" id="f-caption" value="${isEdit ? escapeHtml(image.caption || "") : ""}" /></div>
-    <div class="field"><label>دسته‌بندی</label><input type="text" id="f-category" placeholder="مثلاً کلاس‌ها، اجراها" value="${isEdit ? escapeHtml(image.category || "") : ""}" /></div>
-    <div class="field"><label>ترتیب نمایش</label><input type="number" id="f-order" value="${isEdit ? (image.display_order ?? 0) : 0}" /></div>
+  // آرایه‌ی عکس‌هایی که الان نگه داشته می‌شن (قابل حذف تک‌تک با دکمه‌ی ×)
+  let keptImages = isEdit ? [...getGalleryImagesArray(item)] : [];
+
+  function renderExistingPreview() {
+    if (keptImages.length === 0) {
+      return `<p style="font-size:13px;color:#888;margin:4px 0;">هیچ عکسی باقی نمونده — حداقل یک عکس (قدیمی یا جدید) لازمه.</p>`;
+    }
+    return `
+      <div id="existing-images-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;">
+        ${keptImages.map((url, idx) => `
+          <div style="position:relative;width:70px;height:70px;">
+            <img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" />
+            <button type="button" data-remove-existing="${idx}"
+              style="position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;
+                     background:#d33;color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;">×</button>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  }
+
+  openModal(isEdit ? "ویرایش مجموعه عکس" : "افزودن مجموعه عکس جدید", `
+    ${isEdit ? `
+      <div class="field">
+        <label>عکس‌های فعلی این مجموعه (برای حذف تک‌تک، روی × بزن)</label>
+        <div id="existing-images-wrap">${renderExistingPreview()}</div>
+      </div>
+    ` : ""}
+    <div class="field">
+      <label>افزودن عکس جدید ${isEdit ? "(اختیاری — می‌تونی چند فایل هم‌زمان انتخاب کنی)" : "(می‌تونی چند فایل هم‌زمان انتخاب کنی)"}</label>
+      <input type="file" id="f-images" accept="image/*" multiple ${isEdit ? "" : "required"} />
+    </div>
+    <div class="field"><label>کپشن</label><input type="text" id="f-caption" value="${isEdit ? escapeHtml(item.caption || "") : ""}" /></div>
+    <div class="field"><label>دسته‌بندی</label><input type="text" id="f-category" placeholder="مثلاً کلاس‌ها، اجراها" value="${isEdit ? escapeHtml(item.category || "") : ""}" /></div>
+    <div class="field"><label>ترتیب نمایش</label><input type="number" id="f-order" value="${isEdit ? (item.display_order ?? 0) : 0}" /></div>
   `, async (form) => {
     const caption = form.querySelector("#f-caption").value.trim();
     const category = form.querySelector("#f-category").value.trim();
     const displayOrder = Number(form.querySelector("#f-order").value) || 0;
-    const imageFile = form.querySelector("#f-image").files[0];
+    const newFiles = Array.from(form.querySelector("#f-images").files || []);
 
-    const payload = { caption, category, display_order: displayOrder };
-
-    if (imageFile) {
-      payload.image_url = await uploadImageToStorage(imageFile, "gallery");
+    if (isEdit && keptImages.length === 0 && newFiles.length === 0) {
+      throw new Error("باید حداقل یک عکس برای این مجموعه باقی بمونه.");
     }
 
+    let uploadedUrls = [];
+    if (newFiles.length > 0) {
+      uploadedUrls = await uploadMultipleImagesToStorage(newFiles, "gallery");
+    }
+
+    const finalImages = [...keptImages, ...uploadedUrls];
+
+    const payload = {
+      images: finalImages,
+      caption,
+      category,
+      display_order: displayOrder,
+    };
+
     if (isEdit) {
-      const { error } = await supabaseClient.from("gallery").update(payload).eq("id", image.id);
+      const { error } = await supabaseClient.from("gallery").update(payload).eq("id", item.id);
       if (error) throw error;
     } else {
       const { error } = await supabaseClient.from("gallery").insert(payload);
@@ -318,10 +401,22 @@ function openGalleryForm(image) {
     loadGallery();
     loadDashboardStats();
   });
+
+  // دکمه‌های حذف تک‌تک عکس‌های موجود (فقط حالت ویرایش)
+  if (isEdit) {
+    const wrap = document.getElementById("existing-images-wrap");
+    wrap.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-remove-existing]");
+      if (!btn) return;
+      const idx = Number(btn.dataset.removeExisting);
+      keptImages.splice(idx, 1);
+      wrap.innerHTML = renderExistingPreview();
+    });
+  }
 }
 
-async function deleteGalleryImage(id) {
-  if (!confirm("مطمئنی می‌خوای این تصویر رو حذف کنی؟")) return;
+async function deleteGalleryItem(id) {
+  if (!confirm("مطمئنی می‌خوای این مجموعه عکس رو حذف کنی؟")) return;
   const { error } = await supabaseClient.from("gallery").delete().eq("id", id);
   if (error) { alert("خطا در حذف: " + error.message); return; }
   loadGallery();
