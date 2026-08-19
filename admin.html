@@ -17,6 +17,8 @@
     <a href="index.html" class="admin-logo">'گدروزیا — پنل مدیریت</a>
     <a href="index.html" class="admin-nav-item" style="display:block;text-decoration:none;">🔙 بازگشت به سایت</a>
     <button class="admin-nav-item active" data-panel="dashboard-panel">🏠 داشبورد</button>
+    <button class="admin-nav-item" data-panel="courses-panel">🎬 دوره‌ها</button>
+    <button class="admin-nav-item" data-panel="preregistrations-panel">📋 پیش‌ثبت‌نام‌ها</button>
     <button class="admin-nav-item" data-panel="instructors-panel">🎭 اساتید</button>
     <button class="admin-nav-item" data-panel="gallery-panel">🖼️ گالری</button>
     <button class="admin-nav-item" data-panel="posts-panel">📝 وبلاگ</button>
@@ -32,6 +34,14 @@
     <section class="admin-panel active" id="dashboard-panel">
       <div class="admin-topbar"><h1>داشبورد</h1></div>
       <div class="grid grid-3">
+        <div class="card"><div class="card-body">
+          <h3 id="stat-preregistrations">—</h3>
+          <p class="desc">پیش‌ثبت‌نام‌های جدید</p>
+        </div></div>
+        <div class="card"><div class="card-body">
+          <h3 id="stat-courses">—</h3>
+          <p class="desc">تعداد دوره‌ها</p>
+        </div></div>
         <div class="card"><div class="card-body">
           <h3 id="stat-instructors">—</h3>
           <p class="desc">تعداد اساتید</p>
@@ -53,6 +63,40 @@
           <p class="desc">بلیط‌های فروخته‌شده</p>
         </div></div>
       </div>
+    </section>
+
+    <!-- مدیریت دوره‌ها -->
+    <section class="admin-panel" id="courses-panel">
+      <div class="admin-topbar">
+        <h1>مدیریت دوره‌ها</h1>
+        <button class="btn btn-primary btn-sm" id="add-course-btn">+ افزودن دوره</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>کاور</th><th>عنوان</th><th>سطح</th><th>شهریه</th><th>ترتیب</th><th>عملیات</th></tr>
+        </thead>
+        <tbody id="courses-table-body">
+          <tr class="admin-empty-row"><td colspan="6">در حال بارگذاری…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- مدیریت پیش‌ثبت‌نام‌ها -->
+    <section class="admin-panel" id="preregistrations-panel">
+      <div class="admin-topbar">
+        <h1>پیش‌ثبت‌نام‌های دوره‌ها</h1>
+      </div>
+      <div class="field" style="max-width:340px;margin-bottom:16px;">
+        <input type="text" id="prereg-search-input" placeholder="جستجو بر اساس نام یا شماره تماس…" />
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr><th>نام</th><th>تماس</th><th>دوره</th><th>توضیح</th><th>تاریخ</th><th>وضعیت</th><th>عملیات</th></tr>
+        </thead>
+        <tbody id="preregistrations-table-body">
+          <tr class="admin-empty-row"><td colspan="7">در حال بارگذاری…</td></tr>
+        </tbody>
+      </table>
     </section>
 
     <!-- مدیریت اساتید -->
