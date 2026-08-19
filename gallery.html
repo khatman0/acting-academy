@@ -7,6 +7,61 @@
 <meta name="description" content="گالری عکس‌های آموزشگاه بازیگری صحنه‌آرت — کلاس‌ها، اجراها و پشت‌صحنه" />
 <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="favicon.ico">
+
+  <!--
+    استایل‌های کمکی برای حالت «مجموعه عکس» و ناوبری لایت‌باکس.
+    اگه این کلاس‌ها رو توی style.css خودت داری/می‌خوای همون‌جا تعریف‌شون کنی،
+    این تگ <style> رو می‌تونی حذف کنی. فعلاً این‌جا گذاشتم که بدون دست‌زدن
+    به style.css هم درست کار کنه.
+  -->
+  <style>
+    .gallery-grid figure { position: relative; }
+    .gallery-count-badge {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0,0,0,0.65);
+      color: #fff;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      pointer-events: none;
+    }
+    .lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .lightbox-nav:hover { background: rgba(0,0,0,0.8); }
+    .lightbox-prev { right: 16px; }
+    .lightbox-next { left: 16px; }
+    .lightbox-counter {
+      position: absolute;
+      top: 16px;
+      right: 50%;
+      transform: translateX(50%);
+      color: #fff;
+      background: rgba(0,0,0,0.5);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+  </style>
 </head>
 <body>
 
@@ -49,6 +104,9 @@
 <!-- لایت‌باکس (نمایش بزرگ عکس) -->
 <div class="lightbox hidden" id="lightbox">
   <button class="lightbox-close" id="lightbox-close" aria-label="بستن">×</button>
+  <button class="lightbox-nav lightbox-prev" id="lightbox-prev" aria-label="عکس قبلی">›</button>
+  <button class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="عکس بعدی">‹</button>
+  <div class="lightbox-counter hidden" id="lightbox-counter"></div>
   <img id="lightbox-img" src="" alt="" />
   <div class="lightbox-caption" id="lightbox-caption"></div>
 </div>
@@ -94,17 +152,29 @@
   document.getElementById("year").textContent = new Date().getFullYear();
 
   /**
-   * ⚠️ فرضی که در مورد جدول "gallery" کردم — اگه اسم ستون‌هات فرق داره بگو تا اصلاح کنم:
+   * ⚠️ ساختار جدید جدول "gallery" — هر ردیف الان یک «مجموعه عکس» (آلبوم) هست، نه یک عکس تنها:
    * id             uuid
-   * image_url      text   (اجباری — لینک عکس توی Storage)
-   * caption        text   (اختیاری — توضیح زیر عکس)
-   * category       text   (اختیاری — مثلاً "کلاس‌ها" / "اجراها" / "پشت‌صحنه"، برای فیلتر)
-   * display_order  int4   (ترتیب نمایش)
+   * images         jsonb   (اجباری — آرایه‌ای از لینک‌ها، مثلاً ["url1","url2","url3"])
+   * caption        text    (اختیاری — توضیح مجموعه)
+   * category       text    (اختیاری — مثلاً "کلاس‌ها" / "اجراها" / "پشت‌صحنه"، برای فیلتر)
+   * display_order  int4    (ترتیب نمایش)
    * created_at     timestamptz
+   *
+   * توی ادمین‌پنل باید ستون image_url قبلی حذف بشه و به‌جاش یک آرایه از لینک‌ها
+   * (images) ذخیره بشه؛ مثلاً با آپلود چند فایل و ساختن یک آرایه jsonb.
+   *
+   * اگه رکوردهای قدیمی هنوز ستون image_url دارن و هنوز images رو پر نکردی،
+   * کد پایین به‌صورت خودکار همون یک عکس قدیمی رو به‌عنوان یک آرایه‌ی تک‌عضوی
+   * در نظر می‌گیره تا چیزی خراب نشه (fallback).
    */
 
-  let allImages = [];
+  let allItems = [];
   let activeCategory = "all";
+
+  // وضعیت لایت‌باکس فعلی
+  let currentImages = [];
+  let currentIndex = 0;
+  let currentCaption = "";
 
   loadGallery();
 
@@ -127,16 +197,32 @@
       return;
     }
 
-    allImages = data;
-    renderFilters(data);
-    renderGrid(data);
+    // نرمال‌سازی: هر ردیف باید یک آرایه‌ی images داشته باشه
+    allItems = data.map(item => ({
+      ...item,
+      images: getImagesArray(item)
+    })).filter(item => item.images.length > 0);
+
+    renderFilters(allItems);
+    renderGrid(allItems);
+  }
+
+  function getImagesArray(item) {
+    if (Array.isArray(item.images) && item.images.length > 0) {
+      return item.images;
+    }
+    // سازگاری با رکوردهای قدیمی که فقط image_url داشتن
+    if (item.image_url) {
+      return [item.image_url];
+    }
+    return [];
   }
 
   function renderFilters(data) {
     const filtersWrap = document.getElementById("gallery-filters");
 
     const categories = Array.from(
-      new Set(data.map(img => img.category).filter(Boolean))
+      new Set(data.map(item => item.category).filter(Boolean))
     );
 
     if (categories.length === 0) {
@@ -157,32 +243,37 @@
         btn.classList.add("active");
         activeCategory = btn.dataset.cat;
         const filtered = activeCategory === "all"
-          ? allImages
-          : allImages.filter(img => img.category === activeCategory);
+          ? allItems
+          : allItems.filter(item => item.category === activeCategory);
         renderGrid(filtered);
       });
     });
   }
 
-  function renderGrid(images) {
+  function renderGrid(items) {
     const grid = document.getElementById("gallery-grid");
 
-    if (images.length === 0) {
+    if (items.length === 0) {
       grid.innerHTML = `<div class="empty-state">تصویری در این دسته‌بندی یافت نشد.</div>`;
       return;
     }
 
-    grid.innerHTML = images.map((img, idx) => `
-      <figure data-idx="${idx}" data-src="${img.image_url}">
-        <img src="${img.image_url}" alt="${escapeHtml(img.caption || 'تصویر گالری')}" loading="lazy" />
-        ${img.caption ? `<figcaption>${escapeHtml(img.caption)}</figcaption>` : ""}
+    grid.innerHTML = items.map((item, idx) => {
+      const cover = item.images[0];
+      const count = item.images.length;
+      return `
+      <figure data-idx="${idx}">
+        <img src="${cover}" alt="${escapeHtml(item.caption || 'تصویر گالری')}" loading="lazy" />
+        ${count > 1 ? `<span class="gallery-count-badge">🖼 ${count}</span>` : ""}
+        ${item.caption ? `<figcaption>${escapeHtml(item.caption)}</figcaption>` : ""}
       </figure>
-    `).join("");
+    `;
+    }).join("");
 
     grid.querySelectorAll("figure").forEach(fig => {
       fig.addEventListener("click", () => {
         const idx = Number(fig.dataset.idx);
-        openLightbox(images[idx]);
+        openLightbox(items[idx]);
       });
       fig.style.cursor = "pointer";
     });
@@ -193,25 +284,61 @@
   const lightboxImg = document.getElementById("lightbox-img");
   const lightboxCaption = document.getElementById("lightbox-caption");
   const lightboxClose = document.getElementById("lightbox-close");
+  const lightboxPrev = document.getElementById("lightbox-prev");
+  const lightboxNext = document.getElementById("lightbox-next");
+  const lightboxCounter = document.getElementById("lightbox-counter");
 
-  function openLightbox(img) {
-    lightboxImg.src = img.image_url;
-    lightboxImg.alt = img.caption || "تصویر گالری";
-    lightboxCaption.textContent = img.caption || "";
+  function openLightbox(item) {
+    currentImages = item.images;
+    currentIndex = 0;
+    currentCaption = item.caption || "";
+    updateLightboxView();
     lightbox.classList.remove("hidden");
+
+    const hasMultiple = currentImages.length > 1;
+    lightboxPrev.classList.toggle("hidden", !hasMultiple);
+    lightboxNext.classList.toggle("hidden", !hasMultiple);
+    lightboxCounter.classList.toggle("hidden", !hasMultiple);
+  }
+
+  function updateLightboxView() {
+    lightboxImg.src = currentImages[currentIndex];
+    lightboxImg.alt = currentCaption || "تصویر گالری";
+    lightboxCaption.textContent = currentCaption || "";
+    lightboxCounter.textContent = `${currentIndex + 1} / ${currentImages.length}`;
+  }
+
+  function showPrev() {
+    currentIndex = (currentIndex - 1 + currentImages.length) % currentImages.length;
+    updateLightboxView();
+  }
+
+  function showNext() {
+    currentIndex = (currentIndex + 1) % currentImages.length;
+    updateLightboxView();
   }
 
   function closeLightbox() {
     lightbox.classList.add("hidden");
     lightboxImg.src = "";
+    currentImages = [];
+    currentIndex = 0;
   }
 
   lightboxClose.addEventListener("click", closeLightbox);
+  lightboxPrev.addEventListener("click", (e) => { e.stopPropagation(); showPrev(); });
+  lightboxNext.addEventListener("click", (e) => { e.stopPropagation(); showNext(); });
+
   lightbox.addEventListener("click", (e) => {
     if (e.target === lightbox) closeLightbox();
   });
+
   document.addEventListener("keydown", (e) => {
+    if (lightbox.classList.contains("hidden")) return;
     if (e.key === "Escape") closeLightbox();
+    // چون صفحه RTL هست: فلش راست = قبلی، فلش چپ = بعدی (هم‌جهت با دکمه‌های ‹ ›)
+    if (e.key === "ArrowRight") showPrev();
+    if (e.key === "ArrowLeft") showNext();
   });
 
   function escapeHtml(str) {
