@@ -23,7 +23,7 @@
  * برای گالری هم باید قبلاً gallery_multi_image_migration.sql اجرا شده باشه.
  */
 
-let CURRENT_TAB_DATA = { instructors: [], gallery: [], posts: [], shows: [] };
+let CURRENT_TAB_DATA = { courses: [], preregistrations: [], instructors: [], gallery: [], posts: [], shows: [] };
 
 // ==================== ورود به پنل + گارد ادمین ====================
 (async function initAdminPanel() {
@@ -33,6 +33,8 @@ let CURRENT_TAB_DATA = { instructors: [], gallery: [], posts: [], shows: [] };
   setupSidebar();
   setupLogout();
   loadDashboardStats();
+  loadCourses();
+  loadPreregistrations();
   loadInstructors();
   loadGallery();
   loadPosts();
@@ -62,11 +64,15 @@ function setupLogout() {
 
 // ==================== داشبورد ====================
 async function loadDashboardStats() {
-  const [ins, gal, posts] = await Promise.all([
+  const [courses, prereg, ins, gal, posts] = await Promise.all([
+    supabaseClient.from("courses").select("id", { count: "exact", head: true }),
+    supabaseClient.from("course_preregistrations").select("id", { count: "exact", head: true }).eq("status", "new"),
     supabaseClient.from("instructors").select("id", { count: "exact", head: true }),
     supabaseClient.from("gallery").select("id", { count: "exact", head: true }),
     supabaseClient.from("posts").select("id", { count: "exact", head: true }),
   ]);
+  document.getElementById("stat-courses").textContent = courses.count ?? "0";
+  document.getElementById("stat-preregistrations").textContent = prereg.count ?? "0";
   document.getElementById("stat-instructors").textContent = ins.count ?? "0";
   document.getElementById("stat-gallery").textContent = gal.count ?? "0";
   document.getElementById("stat-posts").textContent = posts.count ?? "0";
@@ -160,6 +166,220 @@ function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str ?? "";
   return div.innerHTML;
+}
+
+// ==================================================================
+// ==================== مدیریت دوره‌ها ====================
+// ==================================================================
+
+async function loadCourses() {
+  const tbody = document.getElementById("courses-table-body");
+  const { data, error } = await supabaseClient
+    .from("courses")
+    .select("*")
+    .order("display_order", { ascending: true });
+
+  if (error || !data || data.length === 0) {
+    tbody.innerHTML = `<tr class="admin-empty-row"><td colspan="6">${error ? "خطا در بارگذاری." : "هنوز دوره‌ای ثبت نشده."}</td></tr>`;
+    return;
+  }
+
+  CURRENT_TAB_DATA.courses = data;
+
+  tbody.innerHTML = data.map(c => `
+    <tr>
+      <td><img src="${c.cover_image_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(c.title)}" /></td>
+      <td>${escapeHtml(c.title)}</td>
+      <td>${escapeHtml(c.level || "—")}</td>
+      <td>${escapeHtml(c.price || "—")}</td>
+      <td>${c.display_order ?? 0}</td>
+      <td class="row-actions">
+        <button class="btn btn-outline btn-sm" data-edit-course="${c.id}">ویرایش</button>
+        <button class="btn btn-danger btn-sm" data-delete-course="${c.id}">حذف</button>
+      </td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll("[data-edit-course]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const course = CURRENT_TAB_DATA.courses.find(c => c.id === btn.dataset.editCourse);
+      openCourseForm(course);
+    });
+  });
+  tbody.querySelectorAll("[data-delete-course]").forEach(btn => {
+    btn.addEventListener("click", () => deleteCourse(btn.dataset.deleteCourse));
+  });
+}
+
+document.getElementById("add-course-btn").addEventListener("click", () => openCourseForm(null));
+
+function openCourseForm(course) {
+  const isEdit = !!course;
+
+  openModal(isEdit ? "ویرایش دوره" : "افزودن دوره جدید", `
+    <div class="field"><label>عنوان دوره</label><input type="text" id="f-title" required value="${isEdit ? escapeHtml(course.title) : ""}" /></div>
+    <div class="field">
+      <label>سطح دوره</label>
+      <select id="f-level">
+        <option value="مقدماتی" ${isEdit && course.level === "مقدماتی" ? "selected" : ""}>مقدماتی</option>
+        <option value="متوسط" ${isEdit && course.level === "متوسط" ? "selected" : ""}>متوسط</option>
+        <option value="پیشرفته" ${isEdit && course.level === "پیشرفته" ? "selected" : ""}>پیشرفته</option>
+      </select>
+    </div>
+    <div class="field"><label>توضیح کوتاه (برای کارت‌ها)</label><textarea id="f-short-desc">${isEdit ? escapeHtml(course.short_description || "") : ""}</textarea></div>
+    <div class="field"><label>توضیح کامل (برای صفحه دوره)</label><textarea id="f-full-desc" style="min-height:140px;">${isEdit ? escapeHtml(course.full_description || "") : ""}</textarea></div>
+    <div class="field"><label>مدت دوره</label><input type="text" id="f-duration" placeholder="مثلاً: ۸ هفته" value="${isEdit ? escapeHtml(course.duration || "") : ""}" /></div>
+    <div class="field"><label>تعداد جلسات</label><input type="text" id="f-sessions" placeholder="مثلاً: هفته‌ای ۲ جلسه" value="${isEdit ? escapeHtml(course.sessions || "") : ""}" /></div>
+    <div class="field"><label>شهریه</label><input type="text" id="f-price" placeholder="مثلاً: ۲٬۵۰۰٬۰۰۰ تومان" value="${isEdit ? escapeHtml(course.price || "") : ""}" /></div>
+    <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای تغییر عکس)" : ""}</label><input type="file" id="f-cover" accept="image/*" ${isEdit ? "" : "required"} /></div>
+    <div class="field"><label>ترتیب نمایش</label><input type="number" id="f-order" value="${isEdit ? (course.display_order ?? 0) : 0}" /></div>
+  `, async (form) => {
+    const title = form.querySelector("#f-title").value.trim();
+    const level = form.querySelector("#f-level").value;
+    const shortDescription = form.querySelector("#f-short-desc").value.trim();
+    const fullDescription = form.querySelector("#f-full-desc").value.trim();
+    const duration = form.querySelector("#f-duration").value.trim();
+    const sessions = form.querySelector("#f-sessions").value.trim();
+    const price = form.querySelector("#f-price").value.trim();
+    const displayOrder = Number(form.querySelector("#f-order").value) || 0;
+    const coverFile = form.querySelector("#f-cover").files[0];
+
+    const payload = {
+      title,
+      level,
+      short_description: shortDescription,
+      full_description: fullDescription,
+      duration,
+      sessions,
+      price,
+      display_order: displayOrder,
+    };
+
+    if (coverFile) {
+      payload.cover_image_url = await uploadImageToStorage(coverFile, "courses");
+    }
+
+    if (isEdit) {
+      const { error } = await supabaseClient.from("courses").update(payload).eq("id", course.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseClient.from("courses").insert(payload);
+      if (error) throw error;
+    }
+
+    loadCourses();
+    loadDashboardStats();
+  });
+}
+
+async function deleteCourse(id) {
+  if (!confirm("مطمئنی می‌خوای این دوره رو حذف کنی؟")) return;
+  const { error } = await supabaseClient.from("courses").delete().eq("id", id);
+  if (error) { alert("خطا در حذف: " + error.message); return; }
+  loadCourses();
+  loadDashboardStats();
+}
+
+// ==================================================================
+// ==================== پیش‌ثبت‌نام دوره‌ها ====================
+// ==================================================================
+
+const PREREG_STATUS_LABELS = {
+  new: "جدید",
+  contacted: "تماس گرفته شد",
+  done: "ثبت‌نام تکمیل شد",
+};
+
+async function loadPreregistrations() {
+  const tbody = document.getElementById("preregistrations-table-body");
+  const { data, error } = await supabaseClient
+    .from("course_preregistrations")
+    .select("*, courses(title)")
+    .order("created_at", { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    tbody.innerHTML = `<tr class="admin-empty-row"><td colspan="7">${error ? "خطا در بارگذاری." : "هنوز پیش‌ثبت‌نامی ثبت نشده."}</td></tr>`;
+    return;
+  }
+
+  CURRENT_TAB_DATA.preregistrations = data;
+  renderPreregistrationsTable(data);
+}
+
+function renderPreregistrationsTable(list) {
+  const tbody = document.getElementById("preregistrations-table-body");
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = `<tr class="admin-empty-row"><td colspan="7">با این عبارت نتیجه‌ای پیدا نشد.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(p => `
+    <tr>
+      <td>${escapeHtml(p.full_name)}</td>
+      <td style="white-space:nowrap;">${escapeHtml(p.phone)}</td>
+      <td>${escapeHtml(p.courses?.title || "—")}</td>
+      <td style="max-width:220px;">${escapeHtml(p.notes || "—")}</td>
+      <td style="white-space:nowrap;">${new Date(p.created_at).toLocaleDateString('fa-IR')}</td>
+      <td>
+        <select class="prereg-status-select" data-status-id="${p.id}" style="background:transparent;color:inherit;border:1px solid rgba(212,162,76,0.3);border-radius:8px;padding:4px 8px;">
+          <option value="new" ${p.status === "new" ? "selected" : ""}>جدید</option>
+          <option value="contacted" ${p.status === "contacted" ? "selected" : ""}>تماس گرفته شد</option>
+          <option value="done" ${p.status === "done" ? "selected" : ""}>ثبت‌نام تکمیل شد</option>
+        </select>
+      </td>
+      <td class="row-actions">
+        <a class="btn btn-outline btn-sm" href="tel:${escapeHtml(p.phone)}">تماس</a>
+        <button class="btn btn-danger btn-sm" data-delete-prereg="${p.id}">حذف</button>
+      </td>
+    </tr>
+  `).join("");
+
+  tbody.querySelectorAll(".prereg-status-select").forEach(sel => {
+    sel.addEventListener("change", () => updatePreregStatus(sel.dataset.statusId, sel.value));
+  });
+  tbody.querySelectorAll("[data-delete-prereg]").forEach(btn => {
+    btn.addEventListener("click", () => deletePreregistration(btn.dataset.deletePrereg));
+  });
+}
+
+async function updatePreregStatus(id, status) {
+  const { error } = await supabaseClient.from("course_preregistrations").update({ status }).eq("id", id);
+  if (error) { alert("خطا در تغییر وضعیت: " + error.message); return; }
+  loadPreregistrations();
+  loadDashboardStats();
+}
+
+async function deletePreregistration(id) {
+  if (!confirm("مطمئنی می‌خوای این پیش‌ثبت‌نام رو حذف کنی؟")) return;
+  const { error } = await supabaseClient.from("course_preregistrations").delete().eq("id", id);
+  if (error) { alert("خطا در حذف: " + error.message); return; }
+  loadPreregistrations();
+  loadDashboardStats();
+}
+
+// ---------- جستجوی پیش‌ثبت‌نام‌ها ----------
+const preregSearchInput = document.getElementById("prereg-search-input");
+if (preregSearchInput) {
+  preregSearchInput.addEventListener("input", () => {
+    const q = preregSearchInput.value.trim().toLowerCase();
+    const all = CURRENT_TAB_DATA.preregistrations || [];
+
+    if (!q) {
+      renderPreregistrationsTable(all);
+      return;
+    }
+
+    const filtered = all.filter(p => {
+      return (
+        (p.full_name || "").toLowerCase().includes(q) ||
+        (p.phone || "").toLowerCase().includes(q) ||
+        (p.courses?.title || "").toLowerCase().includes(q)
+      );
+    });
+
+    renderPreregistrationsTable(filtered);
+  });
 }
 
 // ==================================================================
