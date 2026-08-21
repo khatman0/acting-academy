@@ -132,8 +132,8 @@
         </div>` : ""}
 
         ${post.video_url ? `
-        <div class="cover" style="margin-top:16px;">
-          <video src="${post.video_url}" controls preload="metadata" style="width:100%;border-radius:10px;"></video>
+        <div class="post-video-wrap" style="margin:16px 0 30px;border-radius:var(--radius-lg);overflow:hidden;">
+          <video src="${post.video_url}" autoplay muted loop playsinline controls style="width:100%;display:block;"></video>
         </div>` : ""}
 
         <p class="post-meta">
