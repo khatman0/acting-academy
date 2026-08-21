@@ -24,13 +24,28 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 // نام باکت Storage که برای عکس‌ها ساختیم
 const STORAGE_BUCKET = "academy-images";
 
+// نام باکت Storage مخصوص ویدیوها (باید جدا از باکت عکس‌ها توی Supabase ساخته بشه)
+// چون ویدیو حجمش بیشتره و نوع فایلش (MIME type) فرق داره
+const VIDEO_BUCKET = "academy-videos";
+
 /**
- * تابع کمکی برای ساخت URL عمومی یک فایل از Storage
+ * تابع کمکی برای ساخت URL عمومی یک فایل از Storage (باکت عکس‌ها)
  * @param {string} path - مسیر فایل داخل باکت (مثلاً "gallery/photo1.jpg")
  * @returns {string} لینک عمومی قابل استفاده در تگ <img>
  */
 function getPublicImageUrl(path) {
   if (!path) return "";
   const { data } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+  return data?.publicUrl || "";
+}
+
+/**
+ * تابع کمکی برای ساخت URL عمومی یک فایل ویدیویی (باکت ویدیوها)
+ * @param {string} path - مسیر فایل داخل باکت (مثلاً "posts/video1.mp4")
+ * @returns {string} لینک عمومی قابل استفاده در تگ <video>
+ */
+function getPublicVideoUrl(path) {
+  if (!path) return "";
+  const { data } = supabaseClient.storage.from(VIDEO_BUCKET).getPublicUrl(path);
   return data?.publicUrl || "";
 }
