@@ -7,11 +7,13 @@
  *
  * ⚠️ ساختار جدول‌هایی که این فایل باهاشون کار می‌کنه:
  *
+ * courses:     ... , cover_image_url, video_url (تیزر دوره — باید با migration جدید اضافه بشه), ...
  * instructors: id, name, specialty, bio, photo_url, social_links (jsonb), display_order, created_at
  * gallery:     id, images (jsonb - آرایه‌ای از لینک‌ها), caption, category, display_order, created_at
  *              (ستون قدیمی image_url هم برای سازگاری خونده می‌شه اگه images خالی باشه)
- * posts:       id, title, slug, content, cover_image_url, status ('draft'|'published'),
+ * posts:       id, title, slug, content, cover_image_url, video_url, status ('draft'|'published'),
  *              author_id (fk -> profiles.id), published_at, created_at, updated_at
+ *              (ستون video_url باید با migration جدید اضافه بشه، پایین‌تر توضیح داده شده)
  * shows:       id, title, description, cover_image_url, venue, show_date, show_time,
  *              duration_minutes, price, total_capacity, sold_count (خودکار), status ('draft'|'published'|'closed')
  * bookings:    id, show_id, buyer_name, buyer_email, buyer_phone, quantity, total_price,
@@ -112,6 +114,26 @@ async function uploadMultipleImagesToStorage(files, folder) {
     urls.push(url);
   }
   return urls;
+}
+
+// ==================== ابزار کمکی: آپلود ویدیو در Storage ====================
+/**
+ * یه فایل ویدیویی رو توی باکت VIDEO_BUCKET آپلود می‌کنه و لینک عمومیش رو برمی‌گردونه
+ * @param {File} file
+ * @param {string} folder - زیرپوشه‌ی داخل باکت (مثلاً "posts", "courses")
+ * @returns {Promise<string>} لینک عمومی ویدیو
+ */
+async function uploadVideoToStorage(file, folder) {
+  const ext = file.name.split(".").pop();
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+  const { error } = await supabaseClient.storage.from(VIDEO_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+
+  if (error) throw error;
+  return getPublicVideoUrl(path);
 }
 
 // ==================== ابزار کمکی: مودال عمومی ====================
@@ -232,6 +254,12 @@ function openCourseForm(course) {
     <div class="field"><label>تعداد جلسات</label><input type="text" id="f-sessions" placeholder="مثلاً: هفته‌ای ۲ جلسه" value="${isEdit ? escapeHtml(course.sessions || "") : ""}" /></div>
     <div class="field"><label>شهریه</label><input type="text" id="f-price" placeholder="مثلاً: ۲٬۵۰۰٬۰۰۰ تومان" value="${isEdit ? escapeHtml(course.price || "") : ""}" /></div>
     <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای تغییر عکس)" : ""}</label><input type="file" id="f-cover" accept="image/*" ${isEdit ? "" : "required"} /></div>
+    <div class="field">
+      <label>ویدیوی تیزر دوره (اختیاری${isEdit ? " — برای جایگزینی" : ""})</label>
+      <input type="file" id="f-video" accept="video/*" />
+      <small style="display:block;color:#888;margin-top:4px;">فرمت‌های mp4 / webm / mov — حجم بالا ممکنه کمی طول بکشه</small>
+      ${isEdit && course.video_url ? `<div style="margin-top:6px;font-size:13px;">ویدیوی فعلی: <a href="${course.video_url}" target="_blank">مشاهده</a></div>` : ""}
+    </div>
     <div class="field"><label>ترتیب نمایش</label><input type="number" id="f-order" value="${isEdit ? (course.display_order ?? 0) : 0}" /></div>
   `, async (form) => {
     const title = form.querySelector("#f-title").value.trim();
@@ -243,6 +271,7 @@ function openCourseForm(course) {
     const price = form.querySelector("#f-price").value.trim();
     const displayOrder = Number(form.querySelector("#f-order").value) || 0;
     const coverFile = form.querySelector("#f-cover").files[0];
+    const videoFile = form.querySelector("#f-video").files[0];
 
     const payload = {
       title,
@@ -257,6 +286,10 @@ function openCourseForm(course) {
 
     if (coverFile) {
       payload.cover_image_url = await uploadImageToStorage(coverFile, "courses");
+    }
+
+    if (videoFile) {
+      payload.video_url = await uploadVideoToStorage(videoFile, "courses");
     }
 
     if (isEdit) {
@@ -702,6 +735,12 @@ function openPostForm(post) {
     <div class="field"><label>عنوان</label><input type="text" id="f-title" required value="${isEdit ? escapeHtml(post.title) : ""}" /></div>
     <div class="field"><label>نامک (Slug) — در آدرس لینک استفاده می‌شه</label><input type="text" id="f-slug" required value="${isEdit ? escapeHtml(post.slug) : ""}" placeholder="مثلاً: chera-bazigari-mohem-ast" /></div>
     <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای جایگزینی)" : ""}</label><input type="file" id="f-cover" accept="image/*" ${isEdit ? "" : "required"} /></div>
+    <div class="field">
+      <label>ویدیوی پست (اختیاری${isEdit ? " — برای جایگزینی" : ""})</label>
+      <input type="file" id="f-video" accept="video/*" />
+      <small style="display:block;color:#888;margin-top:4px;">فرمت‌های mp4 / webm / mov — حجم بالا ممکنه کمی طول بکشه</small>
+      ${isEdit && post.video_url ? `<div style="margin-top:6px;font-size:13px;">ویدیوی فعلی: <a href="${post.video_url}" target="_blank">مشاهده</a></div>` : ""}
+    </div>
     <div class="field"><label>متن مطلب</label><textarea id="f-content" style="min-height:200px;" required>${isEdit ? escapeHtml(post.content || "") : ""}</textarea></div>
     <div class="field">
       <label>وضعیت انتشار</label>
@@ -716,6 +755,7 @@ function openPostForm(post) {
     const content = form.querySelector("#f-content").value.trim();
     const status = form.querySelector("#f-status").value;
     const coverFile = form.querySelector("#f-cover").files[0];
+    const videoFile = form.querySelector("#f-video").files[0];
 
     const payload = {
       title,
@@ -732,6 +772,10 @@ function openPostForm(post) {
 
     if (coverFile) {
       payload.cover_image_url = await uploadImageToStorage(coverFile, "posts");
+    }
+
+    if (videoFile) {
+      payload.video_url = await uploadVideoToStorage(videoFile, "posts");
     }
 
     if (isEdit) {
