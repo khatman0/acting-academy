@@ -353,7 +353,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .card:hover, .card:active { transform: translateY(-6px); border-color: rgba(212,162,76,0.35); }
 .card-img { aspect-ratio: 4/5; overflow: hidden; background: #000; }
-.card-img img { width: 100%; height: 100%; object-fit: cover; }
+.card-img img, .card-img video { width: 100%; height: 100%; object-fit: cover; }
 .card-body { padding: 20px; }
 .card-body h3 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
 .card-body p.role { color: var(--marquee-gold); font-size: 13px; font-weight: 600; margin: 0 0 10px; }
