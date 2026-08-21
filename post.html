@@ -131,6 +131,11 @@
           <img src="${post.cover_image_url}" alt="${escapeHtml(post.title)}" />
         </div>` : ""}
 
+        ${post.video_url ? `
+        <div class="cover" style="margin-top:16px;">
+          <video src="${post.video_url}" controls preload="metadata" style="width:100%;border-radius:10px;"></video>
+        </div>` : ""}
+
         <p class="post-meta">
           ${formatDate(post.published_at)}
           ${authorName ? ` · نویسنده: ${escapeHtml(authorName)}` : ""}
