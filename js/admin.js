@@ -253,7 +253,7 @@ function openCourseForm(course) {
     <div class="field"><label>مدت دوره</label><input type="text" id="f-duration" placeholder="مثلاً: ۸ هفته" value="${isEdit ? escapeHtml(course.duration || "") : ""}" /></div>
     <div class="field"><label>تعداد جلسات</label><input type="text" id="f-sessions" placeholder="مثلاً: هفته‌ای ۲ جلسه" value="${isEdit ? escapeHtml(course.sessions || "") : ""}" /></div>
     <div class="field"><label>شهریه</label><input type="text" id="f-price" placeholder="مثلاً: ۲٬۵۰۰٬۰۰۰ تومان" value="${isEdit ? escapeHtml(course.price || "") : ""}" /></div>
-    <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای تغییر عکس)" : ""}</label><input type="file" id="f-cover" accept="image/*" ${isEdit ? "" : "required"} /></div>
+    <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای تغییر عکس)" : "(اختیاری اگه ویدیو داری)"}</label><input type="file" id="f-cover" accept="image/*" /></div>
     <div class="field">
       <label>ویدیوی تیزر دوره (اختیاری${isEdit ? " — برای جایگزینی" : ""})</label>
       <input type="file" id="f-video" accept="video/*" />
@@ -272,6 +272,10 @@ function openCourseForm(course) {
     const displayOrder = Number(form.querySelector("#f-order").value) || 0;
     const coverFile = form.querySelector("#f-cover").files[0];
     const videoFile = form.querySelector("#f-video").files[0];
+
+    if (!isEdit && !coverFile && !videoFile) {
+      throw new Error("باید حداقل یکی از عکس کاور یا ویدیو رو انتخاب کنی.");
+    }
 
     const payload = {
       title,
@@ -734,7 +738,7 @@ function openPostForm(post) {
   openModal(isEdit ? "ویرایش نوشته" : "نوشته جدید", `
     <div class="field"><label>عنوان</label><input type="text" id="f-title" required value="${isEdit ? escapeHtml(post.title) : ""}" /></div>
     <div class="field"><label>نامک (Slug) — در آدرس لینک استفاده می‌شه</label><input type="text" id="f-slug" required value="${isEdit ? escapeHtml(post.slug) : ""}" placeholder="مثلاً: chera-bazigari-mohem-ast" /></div>
-    <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای جایگزینی)" : ""}</label><input type="file" id="f-cover" accept="image/*" ${isEdit ? "" : "required"} /></div>
+    <div class="field"><label>عکس کاور ${isEdit ? "(اختیاری — برای جایگزینی)" : "(اختیاری اگه ویدیو داری)"}</label><input type="file" id="f-cover" accept="image/*" /></div>
     <div class="field">
       <label>ویدیوی پست (اختیاری${isEdit ? " — برای جایگزینی" : ""})</label>
       <input type="file" id="f-video" accept="video/*" />
@@ -756,6 +760,10 @@ function openPostForm(post) {
     const status = form.querySelector("#f-status").value;
     const coverFile = form.querySelector("#f-cover").files[0];
     const videoFile = form.querySelector("#f-video").files[0];
+
+    if (!isEdit && !coverFile && !videoFile) {
+      throw new Error("باید حداقل یکی از عکس کاور یا ویدیو رو انتخاب کنی.");
+    }
 
     const payload = {
       title,
