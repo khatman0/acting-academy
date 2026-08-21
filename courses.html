@@ -129,7 +129,10 @@
     wrap.innerHTML = data.map(c => `
       <a href="courses.html?id=${c.id}" class="card course-card">
         <div class="card-img">
-          <img src="${c.cover_image_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(c.title)}" loading="lazy" />
+          ${!c.cover_image_url && c.video_url
+            ? `<video src="${c.video_url}" autoplay muted loop playsinline></video>`
+            : `<img src="${c.cover_image_url || 'assets/placeholder.jpg'}" alt="${escapeHtml(c.title)}" loading="lazy" />`
+          }
         </div>
         <div class="card-body">
           ${c.level ? `<span class="course-level">${escapeHtml(c.level)}</span>` : ""}
@@ -182,8 +185,8 @@
           <p class="bio">${escapeHtml(course.full_description || course.short_description || "توضیحات این دوره هنوز ثبت نشده است.")}</p>
 
           ${course.video_url ? `
-          <div class="course-trailer" style="margin:20px 0;">
-            <video src="${course.video_url}" controls preload="metadata" style="width:100%;border-radius:10px;"></video>
+          <div class="course-trailer" style="margin:20px 0;border-radius:10px;overflow:hidden;">
+            <video src="${course.video_url}" autoplay muted loop playsinline controls style="width:100%;display:block;"></video>
           </div>` : ""}
 
           <div class="prereg-box" id="prereg-box">
