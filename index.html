@@ -187,7 +187,12 @@
 
     wrap.innerHTML = data.map(post => `
       <a href="post.html?slug=${post.slug}" class="card post-card">
-        <div class="card-img"><img src="${post.cover_image_url || 'assets/placeholder.jpg'}" alt="${post.title}" loading="lazy" /></div>
+        <div class="card-img">
+          ${!post.cover_image_url && post.video_url
+            ? `<video src="${post.video_url}" autoplay muted loop playsinline></video>`
+            : `<img src="${post.cover_image_url || 'assets/placeholder.jpg'}" alt="${post.title}" loading="lazy" />`
+          }
+        </div>
         <div class="card-body">
           <p class="post-meta">${formatDate(post.published_at)}</p>
           <h3 class="post-title">${post.title}</h3>
