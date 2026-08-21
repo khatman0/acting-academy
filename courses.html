@@ -181,6 +181,11 @@
 
           <p class="bio">${escapeHtml(course.full_description || course.short_description || "توضیحات این دوره هنوز ثبت نشده است.")}</p>
 
+          ${course.video_url ? `
+          <div class="course-trailer" style="margin:20px 0;">
+            <video src="${course.video_url}" controls preload="metadata" style="width:100%;border-radius:10px;"></video>
+          </div>` : ""}
+
           <div class="prereg-box" id="prereg-box">
             <h3>پیش‌ثبت‌نام در این دوره</h3>
             <p class="prereg-desc">شماره تماستون رو بذارید تا همکاران ما باهاتون تماس بگیرن و ثبت‌نامتون رو تکمیل کنن.</p>
